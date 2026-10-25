@@ -12,7 +12,8 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   `public/mediapipe`, the model from Google's storage. Metrics: brows, eyesOpen, eyesClose, smile, mouthO,
   jawOpen, chinUp, tilt — progress is relative to a 1.5 s calibration of the relaxed face.
 - Without a camera (or "Без камера") the session runs in demo mode with an animated illustrated face.
-- Voice coach = browser speechSynthesis (bg-BG when the device has a voice).
+- Voice coach = browser speechSynthesis, ONLY with a bg voice; if the device has none it stays silent (a foreign voice reading Cyrillic sounds garbled). Later: pre-recorded Bulgarian audio.
+- Reps: reach → hold (countdown) → relax 3 s (ring counts down, coach announces the next rep/exercise). With the camera the reach threshold drops after 6 s and hold starts anyway after 10 s, so a session never stalls.
 - Streak days kept in localStorage only.
 
 ## Conventions

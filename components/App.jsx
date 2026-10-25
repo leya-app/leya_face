@@ -30,19 +30,44 @@ function streakFrom(days) {
 
 const daysWord = (n) => (n === 1 ? '1 ден' : `${n} дни`);
 
-let bgVoice;
+// Говорим само с български глас. Ако устройството няма такъв, мълчим,
+// вместо чужд глас да чете кирилицата.
+function findBgVoice() {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  try {
+    return window.speechSynthesis.getVoices().find((v) => /^bg([-_]|$)/i.test(v.lang || '')) || null;
+  } catch { return null; }
+}
+
 function speak(text, on) {
-  if (!on || typeof window === 'undefined' || !window.speechSynthesis) return;
+  if (!on) return;
+  const voice = findBgVoice();
+  if (!voice) return;
   try {
     const s = window.speechSynthesis;
-    if (bgVoice === undefined) bgVoice = s.getVoices().find((v) => v.lang && v.lang.startsWith('bg')) || null;
     s.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'bg-BG';
-    if (bgVoice) u.voice = bgVoice;
+    u.voice = voice;
+    u.lang = voice.lang;
     u.rate = 0.95;
     s.speak(u);
   } catch {}
+}
+
+// 'checking' | 'ok' | 'none' — гласовете се зареждат асинхронно.
+function useBgVoice() {
+  const [state, setState] = useState('checking');
+  useEffect(() => {
+    const s = typeof window !== 'undefined' ? window.speechSynthesis : null;
+    if (!s) { setState('none'); return; }
+    const check = () => setState(findBgVoice() ? 'ok' : 'none');
+    const early = findBgVoice();
+    if (early) { setState('ok'); return; }
+    s.addEventListener?.('voiceschanged', check);
+    const t = setTimeout(check, 1500);
+    return () => { clearTimeout(t); s.removeEventListener?.('voiceschanged', check); };
+  }, []);
+  return state;
 }
 
 const Icon = {
@@ -293,12 +318,16 @@ const ZONE_POINTS = {
   tilt: [33, 263, 1, 152, 10, 234, 454],
 };
 
+const RELAX_SEC = 3;
+
 function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   const program = PROGRAMS[programKey];
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   const landmarks = useRef(null);
+  const voice = useBgVoice();
+  const noVoice = voice === 'none';
   const soundRef = useRef(sound);
   soundRef.current = sound;
 
@@ -309,7 +338,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
 
   const S = useRef({
     idx: 0, phase: 'next', t: 0, rep: 0, holdLeft: 0, p: 0, base: null, samples: [],
-    noFace: false, done: 0, started: Date.now(), cue: '',
+    noFace: false, done: 0, started: Date.now(), cue: '', reachedAt: 1,
   });
   const [, force] = useState(0);
 
@@ -418,16 +447,29 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
     else if (s.phase === 'relax') s.p = Math.max(0, s.p - dt / 0.9);
 
     if (s.phase === 'reach') {
-      if (s.p >= 0.85) { s.holdLeft = ex.hold; setPhase('hold', ex.cues.hold); }
-      else if (live && s.t > 6 && s.t - dt <= 6) { s.cue = 'Още малко, почти си там'; speak(s.cue, soundRef.current); }
+      // Ако движението е по-малко от очакваното, прагът пада постепенно,
+      // а след 10 сек задържането започва така или иначе.
+      const need = !live ? 0.85 : s.t < 6 ? 0.85 : s.t < 10 ? 0.55 : 0;
+      if (s.p >= need) {
+        s.holdLeft = ex.hold;
+        s.reachedAt = Math.max(0.3, Math.min(1, s.p));
+        setPhase('hold', ex.cues.hold);
+      } else if (live && s.t > 6 && s.t - dt <= 6) { s.cue = 'Още малко, почти си там'; speak(s.cue, soundRef.current); }
     } else if (s.phase === 'hold') {
-      if (!live || s.p >= 0.55) {
+      if (!live || s.p >= s.reachedAt * 0.6 || s.t > ex.hold * 2.5) {
         s.holdLeft -= dt;
         if (s.cue !== ex.cues.hold) s.cue = ex.cues.hold;
       } else s.cue = 'Върни позицията и задръж';
-      if (s.holdLeft <= 0) setPhase('relax', ex.cues.relax);
+      if (s.holdLeft <= 0) {
+        const lastRep = s.rep + 1 >= ex.reps;
+        const nextEx = program.list[s.idx + 1];
+        const after = !lastRep
+          ? `Следва повторение ${s.rep + 2} от ${ex.reps}.`
+          : nextEx ? `Следва: ${EXERCISES[nextEx].title}.` : 'Това беше последното.';
+        setPhase('relax', `${ex.cues.relax}. ${after}`);
+      }
     } else if (s.phase === 'relax') {
-      if ((s.p < 0.3 && s.t > 0.8) || s.t > 4) {
+      if (s.t >= RELAX_SEC) {
         s.rep += 1;
         if (s.rep >= ex.reps) nextExercise();
         else setPhase('reach', ex.cues.reach);
@@ -468,7 +510,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   const ex = EXERCISES[program.list[s.idx]];
   const live = tracking() && ex.metric;
   const pct = Math.round(Math.min(1, s.p) * 100);
-  const holdFrac = s.phase === 'hold' ? Math.max(0, s.holdLeft) / ex.hold : s.phase === 'relax' ? 0 : 1;
+  const holdFrac = s.phase === 'hold' ? Math.max(0, s.holdLeft) / ex.hold : s.phase === 'relax' ? Math.max(0, 1 - s.t / RELAX_SEC) : 1;
   const exFrac = (s.rep + (s.phase === 'relax' ? 1 : 0)) / ex.reps;
 
   const skip = () => { window.speechSynthesis?.cancel(); nextExercise(); };
@@ -498,7 +540,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
             <div className="display-15">{ex.title}</div>
             <div className="muted small">{program.title} · упражнение {s.idx + 1} от {program.list.length}</div>
           </div>
-          <button className="icon-btn glass" aria-label={sound ? 'Изключи гласа' : 'Включи гласа'} onClick={onSound}>{sound ? Icon.soundOn : Icon.soundOff}</button>
+          <button className="icon-btn glass" aria-label={sound && !noVoice ? 'Изключи гласа' : 'Включи гласа'} onClick={onSound} disabled={noVoice}>{sound && !noVoice ? Icon.soundOn : Icon.soundOff}</button>
         </div>
         <div className="segments" style={{ gridTemplateColumns: `repeat(${program.list.length}, minmax(0,1fr))` }}>
           {program.list.map((k, i) => (
@@ -529,11 +571,11 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
           <div className="ring">
             <svg aria-hidden="true" width="88" height="88" viewBox="0 0 88 88">
               <circle cx="44" cy="44" r="38" fill="rgba(23,20,28,0.8)" stroke="rgba(246,241,238,0.18)" strokeWidth="6" />
-              <circle cx="44" cy="44" r="38" fill="none" stroke="#9CC5A1" strokeWidth="6" strokeLinecap="round"
+              <circle cx="44" cy="44" r="38" fill="none" stroke={s.phase === 'relax' ? '#F2B49B' : '#9CC5A1'} strokeWidth="6" strokeLinecap="round"
                 strokeDasharray="239" strokeDashoffset={239 * (1 - holdFrac)} transform="rotate(-90 44 44)" />
             </svg>
             <div className="ring-text">
-              <div className="display-24">{s.phase === 'hold' ? Math.max(1, Math.ceil(s.holdLeft)) : ex.hold}</div>
+              <div className="display-24">{s.phase === 'hold' ? Math.max(1, Math.ceil(s.holdLeft)) : s.phase === 'relax' ? Math.max(1, Math.ceil(RELAX_SEC - s.t)) : ex.hold}</div>
               <div className="muted tiny">{s.phase === 'hold' ? 'задръж' : s.phase === 'relax' ? 'отпусни' : 'сек'}</div>
             </div>
           </div>
@@ -544,7 +586,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
         <div className="coach">
           <div className="coach-avatar">{Icon.voice}</div>
           <div className="stack-4">
-            <div className="coach-label">Треньорът казва</div>
+            <div className="coach-label">Треньорът казва{noVoice && sound ? ' · без глас: на телефона няма български глас' : ''}</div>
             <div className="coach-text" aria-live="polite">{s.phase === 'next' ? ex.about : s.cue}</div>
           </div>
         </div>
