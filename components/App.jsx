@@ -239,7 +239,40 @@ function Zones({ onBack, onPick }) {
 
 /* ---------- преди тренировката ---------- */
 
+
+// Подсказка как да се добави български глас, според телефона.
+function VoiceHelp() {
+  const [os, setOs] = useState('other');
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const ua = navigator.userAgent || '';
+    setOs(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /Android/i.test(ua) ? 'android' : 'other');
+  }, []);
+  const ios = 'Settings → Accessibility → Spoken Content → Voices → Bulgarian';
+  const android = 'Settings → Text-to-speech → Google → Install voice data → Bulgarian';
+  return (
+    <div className="voice-help">
+      <button className="voice-help-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span className="voice-help-icon">{Icon.soundOff}</span>
+        <span className="voice-help-text">
+          <span className="strong">Треньорът няма глас</span>
+          <span className="muted small">На телефона няма български глас. Виж как да го добавиш.</span>
+        </span>
+        <span className="muted" style={{ transform: open ? 'rotate(90deg)' : 'none' }}>{Icon.chevron}</span>
+      </button>
+      {open && (
+        <div className="voice-help-body">
+          {os !== 'android' && <div><div className="small strong">iPhone</div><div className="path">{ios}</div></div>}
+          {os !== 'ios' && <div><div className="small strong">Android</div><div className="path">{android}</div></div>}
+          <div className="muted small">После презареди приложението.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Intro({ programKey, useCamera, onCamera, onBack, onStart }) {
+  const voice = useBgVoice();
   const p = PROGRAMS[programKey];
   const first = EXERCISES[p.list[0]];
   const zone = p.zone || first.zone;
@@ -274,6 +307,8 @@ function Intro({ programKey, useCamera, onCamera, onBack, onStart }) {
           );
         })}
       </ol>
+
+      {voice === 'none' && <VoiceHelp />}
 
       <div className="bottom-actions">
         <div className="seg" role="radiogroup" aria-label="Режим">
