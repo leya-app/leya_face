@@ -20,3 +20,8 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - Colors: bg #17141C, surfaces #241E2A / #2B2432, peach #F2B49B, sage #9CC5A1, ink #F6F1EE.
 - Fonts: Unbounded (display), Golos Text (body) — both with Cyrillic.
 - No medical claims; label AI content; face data never leaves the device (GDPR).
+
+## Next ideas (from Mariya, not decided yet)
+- More workouts.
+- A massage section (самомасаж на лицето).
+- Pre-recorded Bulgarian voice instead of device text-to-speech.
