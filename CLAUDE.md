@@ -1,7 +1,7 @@
 # Йога за лице (face yoga) — Bulgarian facial exercise app
 
 Owner: Мария Вълчева. All user-facing text is Bulgarian, gender-neutral "ти" (audience includes men).
-Same GitHub org (leya-app) and Vercel account as Лея, separate project.
+Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея, separate project.
 
 ## Current state (stage 1)
 - Next.js 16 (App Router, plain JS). Port of the approved Claude Design canvas
