@@ -36,6 +36,26 @@ export const METRICS = {
     mode: 'abs', target: 0.06,
     fn: (L) => (L[1].y - (L[33].y + L[263].y) / 2) / d(L[10], L[152]),
   },
+  // спокойно чело: прогресът е висок, докато веждите стоят на мястото си
+  calm: {
+    mode: 'calm', target: 0.1,
+    fn: (L) => ((d(L[105], L[159]) + d(L[334], L[386])) / 2) / d(L[10], L[152]),
+  },
+  // рибешка муцунка: устата се стеснява
+  fish: {
+    mode: 'rel', target: -0.14,
+    fn: (L) => d(L[61], L[291]) / d(L[234], L[454]),
+  },
+  // прибиране на брадичката: главата отива назад и лицето в кадъра се смалява
+  tuck: {
+    mode: 'rel', target: -0.05,
+    fn: (L) => d(L[234], L[454]),
+  },
+  // повдигане на скулите: бузата се приближава към долния клепач
+  cheekLift: {
+    mode: 'rel', target: -0.1,
+    fn: (L) => ((d(L[145], L[205]) + d(L[374], L[425])) / 2) / d(L[10], L[152]),
+  },
   tilt: {
     mode: 'abs', target: 14,
     fn: (L) => (Math.atan2(L[263].y - L[33].y, L[263].x - L[33].x) * 180) / Math.PI,
@@ -48,6 +68,7 @@ export function progressFor(metric, value, base) {
   let p;
   if (m.mode === 'rel') p = (value / base - 1) / m.target;
   else if (m.mode === 'delta') p = (value - base) / m.target;
+  else if (m.mode === 'calm') p = 1 - Math.abs(value / base - 1) / m.target;
   else p = Math.abs(value - base) / m.target;
   return Math.max(0, Math.min(1.2, p));
 }

@@ -10,7 +10,7 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - `components/data.js`: exercises, programs, zones (prototype content, no medical claims).
 - `components/tracker.js`: camera + MediaPipe Face Landmarker, on-device only. WASM is served from
   `public/mediapipe`, the model from Google's storage. Metrics: brows, eyesOpen, eyesClose, smile, mouthO,
-  jawOpen, chinUp, tilt — progress is relative to a 1.5 s calibration of the relaxed face.
+  jawOpen, chinUp, tilt, calm (forehead stays still), fish, tuck (chin tuck, face shrinks in frame), cheekLift — progress is relative to a 1.5 s calibration of the relaxed face (all metrics calibrated at once). An exercise may have `seq` (e.g. vowels А-Е-И-О-У): each rep has its own metric and cue.
 - Without a camera (or "Без камера") the session runs in demo mode with an animated illustrated face.
 - Voice coach = browser speechSynthesis, ONLY with a bg voice; if the device has none it stays silent (a foreign voice reading Cyrillic sounds garbled). Later: pre-recorded Bulgarian audio.
 - Reps: reach → hold (countdown) → relax 3 s (ring counts down, coach announces the next rep/exercise). With the camera the reach threshold drops after 6 s and hold starts anyway after 10 s, so a session never stalls.

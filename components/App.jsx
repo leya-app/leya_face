@@ -351,9 +351,18 @@ const ZONE_POINTS = {
   jawOpen: [13, 14, 152, 172, 397, 58, 288],
   chinUp: [1, 152, 10, 33, 263, 172, 397],
   tilt: [33, 263, 1, 152, 10, 234, 454],
+  calm: [70, 63, 105, 66, 107, 336, 296, 334, 293, 300, 9, 151],
+  fish: [61, 291, 0, 17, 205, 425, 50, 280],
+  tuck: [234, 454, 10, 152, 1],
+  cheekLift: [205, 425, 117, 346, 145, 374, 13, 14],
 };
 
 const RELAX_SEC = 3;
+
+// Упражнение с поредица (напр. гласни): всяко повторение има своя метрика и реплика.
+const metricOf = (ex, rep) => (ex.seq ? ex.seq[rep % ex.seq.length].metric : ex.metric);
+const cuesOf = (ex, rep) => (ex.seq ? { ...ex.cues, reach: ex.seq[rep % ex.seq.length].reach } : ex.cues);
+const ALL_METRICS = Object.keys(METRICS);
 
 function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   const program = PROGRAMS[programKey];
@@ -372,7 +381,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   pausedRef.current = paused;
 
   const S = useRef({
-    idx: 0, phase: 'next', t: 0, rep: 0, holdLeft: 0, p: 0, base: null, samples: [],
+    idx: 0, phase: 'next', t: 0, rep: 0, holdLeft: 0, p: 0, base: null, samples: {},
     noFace: false, done: 0, started: Date.now(), cue: '', reachedAt: 1,
   });
   const [, force] = useState(0);
@@ -439,22 +448,25 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   function step(dt) {
     const s = S.current;
     const ex = EXERCISES[program.list[s.idx]];
-    const live = tracking() && ex.metric;
+    const metric = metricOf(ex, s.rep);
+    const cues = cuesOf(ex, s.rep);
+    const live = tracking() && metric;
     s.t += dt;
 
     // стойност от камерата
     let value = null;
+    let L = null;
     if (live) {
-      const L = landmarks.current;
+      L = landmarks.current;
       s.noFace = !L;
-      if (L) value = METRICS[ex.metric].fn(L);
+      if (L) value = METRICS[metric].fn(L);
     } else s.noFace = false;
 
     if (s.phase === 'next') {
       if (s.t === dt && s.idx === 0) speak(`Започваме. ${ex.title}`, soundRef.current);
       if (s.t >= 4) {
         if (live) setPhase('calib', 'Отпусни лицето и гледай в камерата');
-        else setPhase('reach', ex.cues.reach);
+        else setPhase('reach', cues.reach);
       }
       return;
     }
@@ -463,19 +475,23 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
     if (live && s.base == null && s.phase !== 'calib') { setPhase('calib', 'Отпусни лицето и гледай в камерата'); return; }
 
     if (s.phase === 'calib') {
-      if (value != null) s.samples.push(value);
-      if (s.t >= 1.5 && s.samples.length > 5) {
-        const sorted = [...s.samples].sort((a, b) => a - b);
-        s.base = sorted[Math.floor(sorted.length / 2)];
-        s.samples = [];
-        setPhase('reach', ex.cues.reach);
+      if (L) for (const m of ALL_METRICS) (s.samples[m] ||= []).push(METRICS[m].fn(L));
+      const n = s.samples[metric]?.length || 0;
+      if (s.t >= 1.5 && n > 5) {
+        s.base = {};
+        for (const m of ALL_METRICS) {
+          const sorted = [...s.samples[m]].sort((a, b) => a - b);
+          s.base[m] = sorted[Math.floor(sorted.length / 2)];
+        }
+        s.samples = {};
+        setPhase('reach', cues.reach);
       }
       return;
     }
 
     // прогрес: истински от камерата или симулиран (демо / таймер)
     if (live) {
-      const target = progressFor(ex.metric, value, s.base);
+      const target = progressFor(metric, value, s.base[metric]);
       s.p += (target - s.p) * Math.min(1, dt * 10);
     } else if (s.phase === 'reach') s.p = Math.min(1, s.p + dt / 1.1);
     else if (s.phase === 'hold') s.p = 0.92 + 0.05 * Math.sin(s.t * 3);
@@ -488,26 +504,26 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
       if (s.p >= need) {
         s.holdLeft = ex.hold;
         s.reachedAt = Math.max(0.3, Math.min(1, s.p));
-        setPhase('hold', ex.cues.hold);
+        setPhase('hold', cues.hold);
       } else if (live && s.t > 6 && s.t - dt <= 6) { s.cue = 'Още малко, почти си там'; speak(s.cue, soundRef.current); }
     } else if (s.phase === 'hold') {
       if (!live || s.p >= s.reachedAt * 0.6 || s.t > ex.hold * 2.5) {
         s.holdLeft -= dt;
-        if (s.cue !== ex.cues.hold) s.cue = ex.cues.hold;
-      } else s.cue = 'Върни позицията и задръж';
+        if (s.cue !== cues.hold) s.cue = cues.hold;
+      } else s.cue = cues.back || 'Върни позицията и задръж';
       if (s.holdLeft <= 0) {
         const lastRep = s.rep + 1 >= ex.reps;
         const nextEx = program.list[s.idx + 1];
         const after = !lastRep
-          ? `Следва повторение ${s.rep + 2} от ${ex.reps}.`
+          ? (ex.seq ? `Следва: ${ex.seq[(s.rep + 1) % ex.seq.length].label}.` : `Следва повторение ${s.rep + 2} от ${ex.reps}.`)
           : nextEx ? `Следва: ${EXERCISES[nextEx].title}.` : 'Това беше последното.';
-        setPhase('relax', `${ex.cues.relax}. ${after}`);
+        setPhase('relax', `${cues.relax}. ${after}`);
       }
     } else if (s.phase === 'relax') {
       if (s.t >= RELAX_SEC) {
         s.rep += 1;
         if (s.rep >= ex.reps) nextExercise();
-        else setPhase('reach', ex.cues.reach);
+        else setPhase('reach', cuesOf(ex, s.rep).reach);
       }
     }
   }
@@ -526,13 +542,14 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
     ctx.clearRect(0, 0, w, h);
     const L = landmarks.current;
     const ex = EXERCISES[program.list[S.current.idx]];
-    if (!L || !ex.metric || !v.videoWidth) return;
+    const metric = metricOf(ex, S.current.rep);
+    if (!L || !metric || !v.videoWidth) return;
     const sc = Math.max(w / v.videoWidth, h / v.videoHeight);
     const ox = (v.videoWidth * sc - w) / 2;
     const oy = (v.videoHeight * sc - h) / 2;
     const good = S.current.p >= 0.85;
     ctx.fillStyle = good ? '#9CC5A1' : '#F2B49B';
-    for (const i of ZONE_POINTS[ex.metric] || []) {
+    for (const i of ZONE_POINTS[metric] || []) {
       const x = w - (L[i].x * v.videoWidth * sc - ox);
       const y = L[i].y * v.videoHeight * sc - oy;
       ctx.beginPath();
@@ -543,7 +560,8 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
 
   const s = S.current;
   const ex = EXERCISES[program.list[s.idx]];
-  const live = tracking() && ex.metric;
+  const curMetric = metricOf(ex, s.rep);
+  const live = tracking() && curMetric;
   const pct = Math.round(Math.min(1, s.p) * 100);
   const holdFrac = s.phase === 'hold' ? Math.max(0, s.holdLeft) / ex.hold : s.phase === 'relax' ? Math.max(0, 1 - s.t / RELAX_SEC) : 1;
   const exFrac = (s.rep + (s.phase === 'relax' ? 1 : 0)) / ex.reps;
@@ -557,7 +575,7 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
         {camState === 'on' && <canvas ref={canvasRef} className="overlay" aria-hidden="true" />}
         {!(camState === 'on') && (
           <div className="demo-face">
-            <Face zone={ex.zone} metric={ex.metric} p={s.phase === 'next' ? 0 : Math.min(1, s.p)} muted guides size={300}
+            <Face zone={ex.zone} metric={curMetric} p={s.phase === 'next' ? 0 : Math.min(1, s.p)} muted guides size={300}
               label="Илюстрирано огледало с насоки върху лицето" />
           </div>
         )}

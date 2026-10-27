@@ -10,9 +10,25 @@ export default function Face({ zone, metric, p = 0, muted = false, guides = fals
   const eyeRy = metric === 'eyesOpen' ? 6 + 4 * p : metric === 'eyesClose' ? 6 - 3.5 * p : 6;
   const tilt = metric === 'tilt' ? 16 * p : 0;
   const lift = metric === 'chinUp' ? -10 * p : 0;
+  const tuck = metric === 'tuck' ? 1 - 0.06 * p : 1;
 
   let mouth;
-  if (metric === 'mouthO') {
+  if (metric === 'fish') {
+    mouth = (
+      <>
+        <ellipse cx="130" cy="234" rx={20 - 11 * p} ry={5 + 3 * p} fill="#3A2430" stroke="#B5707A" strokeWidth="3" />
+        <path d={`M${70 + 8 * p} 196 Q${84 + 6 * p} 222 ${90 + 4 * p} 246 M${190 - 8 * p} 196 Q${176 - 6 * p} 222 ${170 - 4 * p} 246`} fill="none" stroke="#C9A99C" strokeWidth="2" opacity={p} />
+      </>
+    );
+  } else if (metric === 'cheekLift') {
+    mouth = (
+      <>
+        <ellipse cx="130" cy="234" rx="11" ry="9" fill="#3A2430" stroke="#B5707A" strokeWidth="3" />
+        <ellipse cx="86" cy={204 - 12 * p} rx="16" ry="9" fill="#F2B49B" opacity={0.35 + 0.4 * p} />
+        <ellipse cx="174" cy={204 - 12 * p} rx="16" ry="9" fill="#F2B49B" opacity={0.35 + 0.4 * p} />
+      </>
+    );
+  } else if (metric === 'mouthO') {
     mouth = <ellipse cx="130" cy="234" rx={22 - 9 * p} ry={4 + 14 * p} fill="#3A2430" stroke="#B5707A" strokeWidth="3" />;
   } else if (metric === 'jawOpen') {
     mouth = <ellipse cx="130" cy={234 + 4 * p} rx="18" ry={3 + 15 * p} fill="#3A2430" stroke="#B5707A" strokeWidth="3" />;
@@ -37,7 +53,7 @@ export default function Face({ zone, metric, p = 0, muted = false, guides = fals
       aria-hidden={label ? undefined : 'true'}
     >
       <rect x="96" y="236" width="68" height="90" rx="18" fill={zone === 'neck' ? hl : neckSkin} />
-      <g transform={`rotate(${tilt} 130 250) translate(0 ${lift})`}>
+      <g transform={`rotate(${tilt} 130 250) translate(0 ${lift}) translate(130 150) scale(${tuck}) translate(-130 -150)`}>
         <ellipse cx="130" cy="150" rx="92" ry="118" fill={skin} opacity={muted ? 0.75 : 1} />
         {zone === 'forehead' && (
           <>
