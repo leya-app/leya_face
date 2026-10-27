@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Face from './Face';
 import { EXERCISES, PROGRAMS, ZONES, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
+import { unlockAudio, startMusic, stopMusic, duck } from './music';
 
 /* ---------- малки помощници ---------- */
 
@@ -50,6 +51,9 @@ function speak(text, on) {
     u.voice = voice;
     u.lang = voice.lang;
     u.rate = 0.95;
+    u.onstart = () => duck(true);
+    u.onend = () => duck(false);
+    u.onerror = () => duck(false);
     s.speak(u);
   } catch {}
 }
@@ -81,6 +85,7 @@ const Icon = {
   voice: <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" /></svg>,
   soundOn: <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 9a4 4 0 010 6M19 6a8 8 0 010 12" /></svg>,
   soundOff: <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M17 9l5 6M22 9l-5 6" /></svg>,
+  music: <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></svg>,
   user: <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>,
 };
 
@@ -90,12 +95,14 @@ export default function App() {
   const [screen, setScreen] = useState({ name: 'home' });
   const [days, setDays] = useState([]);
   const [sound, setSound] = useState(true);
+  const [music, setMusic] = useState(true);
   const [useCamera, setUseCamera] = useState(true);
   const [result, setResult] = useState(null);
 
   useEffect(() => {
     setDays(store.get('fy-days', []));
     setSound(store.get('fy-sound', true));
+    setMusic(store.get('fy-music', true));
     setUseCamera(store.get('fy-camera', true));
   }, []);
 
@@ -110,6 +117,7 @@ export default function App() {
     go('done', { program: screen.program });
   };
 
+  const toggleMusic = () => { setMusic((m) => { store.set('fy-music', !m); return !m; }); };
   const toggleSound = () => { setSound((s) => { store.set('fy-sound', !s); return !s; }); };
   const toggleCamera = (v) => { setUseCamera(v); store.set('fy-camera', v); };
 
@@ -123,7 +131,7 @@ export default function App() {
           useCamera={useCamera}
           onCamera={toggleCamera}
           onBack={() => go(screen.from || 'home')}
-          onStart={() => go('session', { program: screen.program, from: screen.from })}
+          onStart={() => { unlockAudio(); go('session', { program: screen.program, from: screen.from }); }}
         />
       )}
       {screen.name === 'session' && (
@@ -132,6 +140,8 @@ export default function App() {
           wantCamera={useCamera}
           sound={sound}
           onSound={toggleSound}
+          music={music}
+          onMusic={toggleMusic}
           onExit={() => go('intro', { program: screen.program, from: screen.from })}
           onDone={finish}
         />
@@ -364,7 +374,7 @@ const metricOf = (ex, rep) => (ex.seq ? ex.seq[rep % ex.seq.length].metric : ex.
 const cuesOf = (ex, rep) => (ex.seq ? { ...ex.cues, reach: ex.seq[rep % ex.seq.length].reach } : ex.cues);
 const ALL_METRICS = Object.keys(METRICS);
 
-function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
+function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExit, onDone }) {
   const program = PROGRAMS[programKey];
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -401,8 +411,13 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
   useEffect(() => {
     let lock;
     navigator.wakeLock?.request('screen').then((l) => { lock = l; }).catch(() => {});
-    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); };
+    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); stopMusic(); };
   }, []);
+
+  // фонова музика
+  useEffect(() => {
+    if (music && !paused) startMusic(); else stopMusic();
+  }, [music, paused]);
 
   // основен цикъл
   useEffect(() => {
@@ -593,7 +608,10 @@ function Session({ programKey, wantCamera, sound, onSound, onExit, onDone }) {
             <div className="display-15">{ex.title}</div>
             <div className="muted small">{program.title} · упражнение {s.idx + 1} от {program.list.length}</div>
           </div>
-          <button className="icon-btn glass" aria-label={sound && !noVoice ? 'Изключи гласа' : 'Включи гласа'} onClick={onSound} disabled={noVoice}>{sound && !noVoice ? Icon.soundOn : Icon.soundOff}</button>
+          <div className="top-actions">
+            <button className={`icon-btn glass ${music ? '' : 'off'}`} aria-label={music ? 'Изключи музиката' : 'Включи музиката'} aria-pressed={music} onClick={onMusic}>{Icon.music}</button>
+            <button className="icon-btn glass" aria-label={sound && !noVoice ? 'Изключи гласа' : 'Включи гласа'} onClick={onSound} disabled={noVoice}>{sound && !noVoice ? Icon.soundOn : Icon.soundOff}</button>
+          </div>
         </div>
         <div className="segments" style={{ gridTemplateColumns: `repeat(${program.list.length}, minmax(0,1fr))` }}>
           {program.list.map((k, i) => (

@@ -14,6 +14,7 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - Without a camera (or "Без камера") the session runs in demo mode with an animated illustrated face.
 - Voice coach = browser speechSynthesis, ONLY with a bg voice; if the device has none it stays silent (a foreign voice reading Cyrillic sounds garbled). Later: pre-recorded Bulgarian audio.
 - Reps: reach → hold (countdown) → relax 3 s (ring counts down, coach announces the next rep/exercise). With the camera the reach threshold drops after 6 s and hold starts anyway after 10 s, so a session never stalls.
+- Background music: generated in the browser (components/music.js, Web Audio pad + bells), no files or licences; toggle in the session top bar, ducks while the coach speaks; AudioContext is unlocked on the "Започни" tap.
 - Streak days kept in localStorage only.
 
 ## Conventions
