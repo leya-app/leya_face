@@ -26,3 +26,8 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - More workouts.
 - A massage section (самомасаж на лицето).
 - Pre-recorded Bulgarian voice instead of device text-to-speech.
+- Personal programs (Premium): a program assigned to ONE user only (owner = user id; Supabase row-level security
+  so only that user and the trainer who made it can read it). Phase 1: trainer builds it from our exercise library
+  (order, reps, hold, days) → camera tracking works everywhere. Trainer's own exercises run on a timer (text + steps).
+  Phase 2: user pastes/photographs a program and AI maps it to library exercises for confirmation.
+  Needs accounts + database first (same plan as Лея: Apple/Google login, Supabase EU).
