@@ -354,8 +354,6 @@ const ZONE_POINTS = {
 };
 
 const RELAX_SEC = 3;
-const ORD = { 2: 'второ', 3: 'трето', 4: 'четвърто', 5: 'пето' };
-const CNT = { 2: 'две', 4: 'четири', 5: 'пет' };
 
 // Упражнение с поредица (напр. гласни): всяко повторение има своя метрика и реплика.
 const metricOf = (ex, rep) => (ex.seq ? ex.seq[rep % ex.seq.length].metric : ex.metric);
@@ -529,13 +527,15 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
         const lastRep = s.rep + 1 >= ex.reps;
         const nextEx = program.list[s.idx + 1];
         const nextLabel = ex.seq && ex.seq[(s.rep + 1) % ex.seq.length].label;
+        // Броячът на екрана показва повторенията, затова гласът обявява само последното.
+        const nextIsLast = !lastRep && s.rep + 2 === ex.reps && ex.reps > 2;
         const after = !lastRep
-          ? (ex.seq ? `Следва: ${nextLabel}.` : `Следва повторение ${s.rep + 2} от ${ex.reps}.`)
+          ? (ex.seq ? `Следва: ${nextLabel}.` : nextIsLast ? 'Последно повторение.' : '')
           : nextEx ? `Следва: ${EXERCISES[nextEx].title}.` : 'Това беше последното.';
         const afterVoice = !lastRep
-          ? (ex.seq ? [`Следва „${nextLabel}“.`] : [`Следва ${ORD[s.rep + 2]} от ${CNT[ex.reps]} повторения.`])
+          ? (ex.seq ? [`Следва „${nextLabel}“.`] : nextIsLast ? ['Последно повторение.'] : [])
           : nextEx ? ['Следва:', EXERCISES[nextEx].title] : ['Това беше последното.'];
-        setPhase('relax', `${cues.relax}. ${after}`, [cues.relax, ...afterVoice]);
+        setPhase('relax', after ? `${cues.relax}. ${after}` : cues.relax, [cues.relax, ...afterVoice]);
       }
     } else if (s.phase === 'relax') {
       if (s.t >= RELAX_SEC) {
