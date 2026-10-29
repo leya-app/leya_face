@@ -1,9 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Йога за лице',
+  title: 'FACEtetica – йога за лице',
   description: 'Кратки тренировки за лицето на български, с треньор, който следи техниката през камерата.',
-  appleWebApp: { capable: true, title: 'Йога за лице', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'FACEtetica', statusBarStyle: 'black-translucent' },
   icons: { apple: '/icons/icon-180.png' },
 };
 

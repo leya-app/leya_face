@@ -166,6 +166,7 @@ function Home({ streak, onProgram, onZones }) {
     <section className="screen home">
       <header className="home-head">
         <div className="stack-6">
+          <div className="wordmark" aria-label="FACEtetica"><b>FACE</b>tetica</div>
           <div className="muted cap">{date}</div>
           <h1 className="display-28">{hello}</h1>
         </div>

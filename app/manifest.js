@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
     name: 'FACEtetica – йога за лице',
-    short_name: 'FACEtetica – йога за лице',
+    short_name: 'FACEtetica',
     description: 'Кратки тренировки за лицето с AI треньор',
     start_url: '/',
     display: 'standalone',

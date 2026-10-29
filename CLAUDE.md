@@ -1,4 +1,6 @@
-# Йога за лице (face yoga) — Bulgarian facial exercise app
+# FACEtetica – йога за лице (face yoga) — Bulgarian facial exercise app
+
+Brand name: FACEtetica (face + естетика), always spelled with "c"; "FACE" in capitals in the wordmark. Subtitle: „йога за лице“.
 
 Owner: Мария Вълчева. All user-facing text is Bulgarian, gender-neutral "ти" (audience includes men).
 Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея, separate project.
