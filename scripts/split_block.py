@@ -5,10 +5,14 @@
 import json, re, subprocess, sys, math
 
 src, first, count, lines_path, out_dir = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5]
+# по избор: ръчно разпределение – колко парчета реч има всяка фраза, напр. 1,2,1,...
+manual = [int(x) for x in sys.argv[6].split(',')] if len(sys.argv) > 6 else None
 lines = json.load(open(lines_path))
 phr = [l for l in lines if first <= int(l['n']) < first + count]
 V = set('аеиоуъюяАЕИОУЪЮЯ')
 syl = [max(1, sum(ch in V for ch in p['text'])) for p in phr]
+# очаквани паузи вътре във фразата: запетаи, точки, кавички
+pauses = [len(re.findall(r'[,.!?:„]', p['text'].rstrip('.!?:“'))) for p in phr]
 
 dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', src], capture_output=True, text=True).stdout)
 err = subprocess.run(['ffmpeg', '-hide_banner', '-i', src, '-af', 'silencedetect=noise=-35dB:d=0.25', '-f', 'null', '-'], capture_output=True, text=True).stderr
@@ -35,12 +39,17 @@ for j in range(1, M + 1):
             if dp[j - 1][k] == INF: continue
             d = chunks[i - 1][1] - chunks[k][0]
             inner = sum(gap(t) for t in range(k, i - 1))          # паузи вътре във фразата
-            cost = (math.log(d / exp)) ** 2 + 2.0 * inner
+            cost = (math.log(d / exp)) ** 2 + 0.5 * inner + 0.6 * abs((i - k - 1) - pauses[j - 1])
             if dp[j - 1][k] + cost < dp[j][i]: dp[j][i], bk[j][i] = dp[j - 1][k] + cost, k
-groups, i = [], N
-for j in range(M, 0, -1):
-    k = bk[j][i]; groups.append((k, i)); i = k
-groups.reverse()
+if manual:
+    if sum(manual) != N or len(manual) != M: sys.exit(f'Ръчното разпределение трябва да е {M} числа със сбор {N}.')
+    groups, k = [], 0
+    for c in manual: groups.append((k, k + c)); k += c
+else:
+    groups, i = [], N
+    for j in range(M, 0, -1):
+        k = bk[j][i]; groups.append((k, i)); i = k
+    groups.reverse()
 for p, (k, i) in zip(phr, groups):
     # меки окончания: взимаме почти цялата пауза до следващата фраза
     prev_end = chunks[k - 1][1] if k > 0 else 0.0
