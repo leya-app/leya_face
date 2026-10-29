@@ -5,7 +5,7 @@ import { getCtx, duck } from './music';
 
 const norm = (t) => String(t).toLowerCase().replace(/[-–]/g, ' ').replace(/[„“"'.!?:,]/g, '').replace(/\s+/g, ' ').trim();
 const BY_TEXT = new Map(LINES.map((l) => [norm(l.text), l.n]));
-export const TOTAL_LINES = LINES.length;
+export const TOTAL_LINES = LINES.filter((l) => !l.unused).length;
 
 let have = new Set();
 let ready = null;
