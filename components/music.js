@@ -16,6 +16,8 @@ const CHORDS = [
 const BELLS = [72, 74, 76, 79, 81, 84];
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
+export const getCtx = () => ctx;
+
 // Трябва да се извика от натискане на бутон (iPhone иначе не пуска звук).
 export function unlockAudio() {
   try {

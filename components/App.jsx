@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Face from './Face';
 import { EXERCISES, PROGRAMS, ZONES, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
-import { unlockAudio, startMusic, stopMusic, duck } from './music';
+import { unlockAudio, startMusic, stopMusic } from './music';
+import { say, silence, preload, loadVoiceIndex, TOTAL_LINES } from './voice';
 
 /* ---------- малки помощници ---------- */
 
@@ -38,24 +39,6 @@ function findBgVoice() {
   try {
     return window.speechSynthesis.getVoices().find((v) => /^bg([-_]|$)/i.test(v.lang || '')) || null;
   } catch { return null; }
-}
-
-function speak(text, on) {
-  if (!on) return;
-  const voice = findBgVoice();
-  if (!voice) return;
-  try {
-    const s = window.speechSynthesis;
-    s.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.voice = voice;
-    u.lang = voice.lang;
-    u.rate = 0.95;
-    u.onstart = () => duck(true);
-    u.onend = () => duck(false);
-    u.onerror = () => duck(false);
-    s.speak(u);
-  } catch {}
 }
 
 // 'checking' | 'ok' | 'none' — гласовете се зареждат асинхронно.
@@ -284,6 +267,8 @@ function VoiceHelp() {
 
 function Intro({ programKey, useCamera, onCamera, onBack, onStart }) {
   const voice = useBgVoice();
+  const [recorded, setRecorded] = useState(0);
+  useEffect(() => { loadVoiceIndex().then((h) => setRecorded(h.size)); }, []);
   const p = PROGRAMS[programKey];
   const first = EXERCISES[p.list[0]];
   const zone = p.zone || first.zone;
@@ -319,7 +304,7 @@ function Intro({ programKey, useCamera, onCamera, onBack, onStart }) {
         })}
       </ol>
 
-      {voice === 'none' && <VoiceHelp />}
+      {voice === 'none' && recorded < TOTAL_LINES && <VoiceHelp />}
 
       <div className="bottom-actions">
         <div className="seg" role="radiogroup" aria-label="Режим">
@@ -369,6 +354,8 @@ const ZONE_POINTS = {
 };
 
 const RELAX_SEC = 3;
+const ORD = { 2: 'второ', 3: 'трето', 4: 'четвърто', 5: 'пето' };
+const CNT = { 2: 'две', 4: 'четири', 5: 'пет' };
 
 // Упражнение с поредица (напр. гласни): всяко повторение има своя метрика и реплика.
 const metricOf = (ex, rep) => (ex.seq ? ex.seq[rep % ex.seq.length].metric : ex.metric);
@@ -382,7 +369,9 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
   const stageRef = useRef(null);
   const landmarks = useRef(null);
   const voice = useBgVoice();
-  const noVoice = voice === 'none';
+  const [recorded, setRecorded] = useState(0);
+  useEffect(() => { loadVoiceIndex().then((h) => setRecorded(h.size)); }, []);
+  const noVoice = voice === 'none' && recorded < TOTAL_LINES;
   const soundRef = useRef(sound);
   soundRef.current = sound;
 
@@ -412,7 +401,15 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
   useEffect(() => {
     let lock;
     navigator.wakeLock?.request('screen').then((l) => { lock = l; }).catch(() => {});
-    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); stopMusic(); };
+    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); stopMusic(); silence(); };
+  }, []);
+
+  // зареждаме записите за тази тренировка предварително
+  useEffect(() => {
+    const t = ['Започваме.', 'Следва:', 'Отпусни лицето и гледай в камерата', 'Още малко, почти си там', 'Готово! Браво.', 'Това беше последното.'];
+    for (const k of program.list) { const e = EXERCISES[k]; t.push(e.title, ...Object.values(e.cues), ...(e.seq || []).map((q) => q.reach)); }
+    preload(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // фонова музика
@@ -440,25 +437,26 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
 
   const tracking = () => camState === 'on';
 
-  function setPhase(phase, cue) {
+  function setPhase(phase, cue, voice) {
     const s = S.current;
     s.phase = phase;
     s.t = 0;
-    if (cue) { s.cue = cue; speak(cue, soundRef.current); }
+    if (cue) { s.cue = cue; say(voice || [cue], soundRef.current); }
   }
 
   function nextExercise() {
     const s = S.current;
     s.done += 1;
     if (s.idx + 1 >= program.list.length) {
-      speak('Готово! Браво.', soundRef.current);
+      say(['Готово! Браво.'], soundRef.current);
       onDone({ exercises: s.done, minutes: Math.max(1, Math.round((Date.now() - s.started) / 60000)), title: program.title });
       return;
     }
     s.idx += 1;
     s.rep = 0;
     s.base = null;
-    setPhase('next', `Следва: ${EXERCISES[program.list[s.idx]].title}`);
+    const nt = EXERCISES[program.list[s.idx]].title;
+    setPhase('next', `Следва: ${nt}`, ['Следва:', nt]);
   }
 
   function step(dt) {
@@ -479,7 +477,7 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
     } else s.noFace = false;
 
     if (s.phase === 'next') {
-      if (s.t === dt && s.idx === 0) speak(`Започваме. ${ex.title}`, soundRef.current);
+      if (s.t === dt && s.idx === 0) say(['Започваме.', ex.title], soundRef.current);
       if (s.t >= 4) {
         if (live) setPhase('calib', 'Отпусни лицето и гледай в камерата');
         else setPhase('reach', cues.reach);
@@ -521,7 +519,7 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
         s.holdLeft = ex.hold;
         s.reachedAt = Math.max(0.3, Math.min(1, s.p));
         setPhase('hold', cues.hold);
-      } else if (live && s.t > 6 && s.t - dt <= 6) { s.cue = 'Още малко, почти си там'; speak(s.cue, soundRef.current); }
+      } else if (live && s.t > 6 && s.t - dt <= 6) { s.cue = 'Още малко, почти си там'; say([s.cue], soundRef.current); }
     } else if (s.phase === 'hold') {
       if (!live || s.p >= s.reachedAt * 0.6 || s.t > ex.hold * 2.5) {
         s.holdLeft -= dt;
@@ -530,10 +528,14 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
       if (s.holdLeft <= 0) {
         const lastRep = s.rep + 1 >= ex.reps;
         const nextEx = program.list[s.idx + 1];
+        const nextLabel = ex.seq && ex.seq[(s.rep + 1) % ex.seq.length].label;
         const after = !lastRep
-          ? (ex.seq ? `Следва: ${ex.seq[(s.rep + 1) % ex.seq.length].label}.` : `Следва повторение ${s.rep + 2} от ${ex.reps}.`)
+          ? (ex.seq ? `Следва: ${nextLabel}.` : `Следва повторение ${s.rep + 2} от ${ex.reps}.`)
           : nextEx ? `Следва: ${EXERCISES[nextEx].title}.` : 'Това беше последното.';
-        setPhase('relax', `${cues.relax}. ${after}`);
+        const afterVoice = !lastRep
+          ? (ex.seq ? [`Следва „${nextLabel}“.`] : [`Следва ${ORD[s.rep + 2]} от ${CNT[ex.reps]} повторения.`])
+          : nextEx ? ['Следва:', EXERCISES[nextEx].title] : ['Това беше последното.'];
+        setPhase('relax', `${cues.relax}. ${after}`, [cues.relax, ...afterVoice]);
       }
     } else if (s.phase === 'relax') {
       if (s.t >= RELAX_SEC) {
