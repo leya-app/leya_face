@@ -42,7 +42,11 @@ for j in range(M, 0, -1):
     k = bk[j][i]; groups.append((k, i)); i = k
 groups.reverse()
 for p, (k, i) in zip(phr, groups):
-    a = max(0, chunks[k][0] - 0.06); b = min(dur, chunks[i - 1][1] + 0.18)
+    # меки окончания: взимаме почти цялата пауза до следващата фраза
+    prev_end = chunks[k - 1][1] if k > 0 else 0.0
+    next_start = chunks[i][0] if i < N else dur
+    a = max(prev_end + 0.02, chunks[k][0] - 0.12)
+    b = min(next_start - 0.04, chunks[i - 1][1] + 0.4)
     out = f"{out_dir}/{p['n']}.mp3"
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', src, '-ss', f'{a:.3f}', '-to', f'{b:.3f}',
                     '-af', 'afade=t=in:d=0.02,areverse,afade=t=in:d=0.06,areverse,loudnorm=I=-18:TP=-2',
