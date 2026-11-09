@@ -294,6 +294,9 @@ export const PROGRAMS = {
     color: 'sage',
     list: ['foreheadPress', 'browRelax', 'eyeSquint', 'eyeTap', 'jawRest', 'neckTilt'],
   },
+  photo: { title: 'Преди снимка', tagline: 'Свежо лице за 3 минути: очи, бузи, брадичка', occasion: true, list: ['eyeWide', 'cheekPuff', 'cheekLifter', 'chinTuck'] },
+  meeting: { title: 'Преди среща', tagline: 'Отпусни челото и челюстта, събери се', occasion: true, list: ['browRelax', 'jawRest', 'smileLift', 'chinTuck'] },
+  flight: { title: 'След полет', tagline: 'Срещу подуване и схванат врат след път', occasion: true, list: ['eyeTap', 'cheekPuff', 'neckTilt', 'chinTuck', 'jawRelease'] },
   forehead: { title: 'Чело', zone: 'forehead', list: ['brows', 'browRelax', 'foreheadPress'] },
   eyes: { title: 'Очи', zone: 'eyes', list: ['eyeWide', 'eyeSquint', 'eyeTap'] },
   naso: { title: 'Назолабиални гънки', zone: 'naso', list: ['cheekLifter', 'smileLift', 'fishFace', 'vowels', 'cheekPuff'] },
@@ -314,3 +317,5 @@ export function programMinutes(p) {
 export function countWord(n) {
   return n === 1 ? '1 упражнение' : `${n} упражнения`;
 }
+
+export const OCCASIONS = ['photo', 'meeting', 'flight'];

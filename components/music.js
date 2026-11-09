@@ -100,3 +100,17 @@ export function duck(on) {
   if (!ctx || !master || !playing) return;
   master.gain.setTargetAtTime(on ? level * 0.35 : level, ctx.currentTime, 0.25);
 }
+
+// Тих звън за подсказка (Тихо огледало).
+export function chime() {
+  if (!ctx) return;
+  const at = ctx.currentTime + 0.02;
+  [76, 83].forEach((m, i) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = hz(m);
+    g.gain.setValueAtTime(0, at + i * 0.18);
+    g.gain.linearRampToValueAtTime(0.12, at + i * 0.18 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + i * 0.18 + 1.6);
+    o.connect(g).connect(ctx.destination); o.start(at + i * 0.18); o.stop(at + i * 0.18 + 1.7);
+  });
+}

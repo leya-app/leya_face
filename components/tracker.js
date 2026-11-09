@@ -141,9 +141,15 @@ export async function startTracking(video, onFrame, opts = {}) {
   let face = null;
   let handList = [];
   let odd = false;
+  let timer = 0;
+  // Във фонов раздел requestAnimationFrame спира – тогава проверяваме 2 пъти в секунда.
+  const schedule = () => {
+    if (typeof document !== 'undefined' && document.hidden) timer = setTimeout(loop, 500);
+    else raf = requestAnimationFrame(loop);
+  };
   const loop = () => {
-    raf = requestAnimationFrame(loop);
-    if (video.readyState < 2 || video.currentTime === last) return;
+    schedule();
+    if (video.readyState < 2 || (!document.hidden && video.currentTime === last)) return;
     last = video.currentTime;
     const now = performance.now();
     if (hands && odd) {
@@ -160,6 +166,7 @@ export async function startTracking(video, onFrame, opts = {}) {
 
   return () => {
     cancelAnimationFrame(raf);
+    clearTimeout(timer);
     stream.getTracks().forEach((t) => t.stop());
     video.srcObject = null;
   };

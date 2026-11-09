@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Face from './Face';
 import { Icon } from './icons';
 import { MassageList, MassageIntro, MassageSession } from './Massage';
-import { EXERCISES, PROGRAMS, ZONES, programMinutes, countWord } from './data';
+import QuietMirror from './QuietMirror';
+import { EXERCISES, PROGRAMS, ZONES, OCCASIONS, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
 import { unlockAudio, startMusic, stopMusic } from './music';
 import { say, silence, preload, loadVoiceIndex, TOTAL_LINES } from './voice';
@@ -94,7 +95,8 @@ export default function App() {
 
   return (
     <main className="shell">
-      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} />}
+      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} />}
+      {screen.name === 'mirror' && <QuietMirror onBack={() => go('home')} />}
       {screen.name === 'massages' && <MassageList onBack={() => go('home')} onPick={(keys) => go('massageIntro', { keys })} />}
       {screen.name === 'massageIntro' && (
         <MassageIntro keys={screen.keys} useCamera={useCamera} onCamera={toggleCamera} onBack={() => go('massages')}
@@ -133,7 +135,7 @@ export default function App() {
 
 /* ---------- начало ---------- */
 
-function Home({ streak, onProgram, onZones, onMassages }) {
+function Home({ streak, onProgram, onZones, onMassages, onMirror }) {
   const [now, setNow] = useState(null);
   useEffect(() => setNow(new Date()), []);
   const h = now ? now.getHours() : 9;
@@ -188,6 +190,15 @@ function Home({ streak, onProgram, onZones, onMassages }) {
         </span>
       </button>
 
+      <div className="occasions" role="group" aria-label="Бързо за повод">
+        {OCCASIONS.map((k) => (
+          <button key={k} className="occasion" onClick={() => onProgram(k)}>
+            <span className="occasion-title">{PROGRAMS[k].title}</span>
+            <span className="muted tiny">{programMinutes(PROGRAMS[k])} мин</span>
+          </button>
+        ))}
+      </div>
+
       <button className="zone-row" onClick={onZones}>
         <span className="zone-row-icon"><Face zone="forehead" size={40} muted /></span>
         <span className="zone-row-text">
@@ -202,6 +213,15 @@ function Home({ streak, onProgram, onZones, onMassages }) {
         <span className="zone-row-text">
           <span className="zone-row-title">Масажи</span>
           <span className="muted small">Шия, челюст, овал, бузи, очи, чело</span>
+        </span>
+        <span className="muted">{Icon.chevron}</span>
+      </button>
+
+      <button className="zone-row" onClick={onMirror}>
+        <span className="zone-row-icon sage-bg">{Icon.screen}</span>
+        <span className="zone-row-text">
+          <span className="zone-row-title">Тихо огледало</span>
+          <span className="muted small">Подсказва, когато се мръщиш пред компютъра</span>
         </span>
         <span className="muted">{Icon.chevron}</span>
       </button>

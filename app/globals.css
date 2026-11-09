@@ -224,3 +224,29 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 .pink-cta { background: #E9C9DA; }
 .warn { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(242,180,155,0.12); color: #F6D6C9; font-size: 14px; line-height: 1.4; }
 .warn svg { flex: none; color: var(--peach); }
+
+/* поводи */
+.occasions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.occasion { padding: 12px 10px; border-radius: 18px; border: 1px solid rgba(242,180,155,0.3); background: transparent; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.occasion-title { font-size: 14px; font-weight: 600; line-height: 1.25; }
+
+/* тихо огледало */
+.sage-bg { background: #9CC5A1 !important; color: #22362A; }
+.sage-cta { background: var(--sage); }
+.mirror-options { display: flex; flex-direction: column; gap: 8px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--surface); }
+.toggle-row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--sage); flex: none; }
+.small-seg { flex: none; grid-template-columns: repeat(3, auto); }
+.small-seg button { height: 34px; padding: 0 10px; font-size: 13px; }
+.mirror-run { gap: 16px; }
+.mirror-status { position: relative; height: 300px; border-radius: 28px; overflow: hidden; background: var(--surface); box-shadow: 0 0 0 3px var(--surface-2); transition: box-shadow 0.4s; }
+.mirror-status.calm { box-shadow: 0 0 0 3px var(--sage); }
+.mirror-status.alert { box-shadow: 0 0 0 4px var(--peach); }
+.mirror-status.paused { opacity: 0.6; }
+.mirror-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.mirror-badge { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: rgba(23,20,28,0.8); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.mirror-status.alert .mirror-badge { color: var(--peach); }
+.mirror-status.calm .mirror-badge { color: #CDE6D0; }
+.mirror-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mirror-counts .metric.off { opacity: 0.4; }
+.summary-card { padding: 16px; border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
