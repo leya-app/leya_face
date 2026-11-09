@@ -15,7 +15,7 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   (fingertip = avg of index+middle tips; face and hands alternate frames) and counts strokes (t 0.3→0.8 along the path)
   or full circles; pace = stroke duration vs tempo. No hands for 9 s → counts by tempo. Without camera → demo by tempo.
 - `components/data.js`: exercises, programs, zones (prototype content, no medical claims).
-- `components/tracker.js`: camera + MediaPipe Face Landmarker, on-device only. WASM is served from
+- `components/tracker.js`: camera + MediaPipe Face Landmarker (with blendshapes), on-device only. WASM is served from
   `public/mediapipe`, the model from Google's storage. Metrics: brows, eyesOpen, eyesClose, smile, mouthO,
   jawOpen, chinUp, tilt, calm (forehead stays still), fish, tuck (chin tuck, face shrinks in frame), cheekLift — progress is relative to a 1.5 s calibration of the relaxed face (all metrics calibrated at once). An exercise may have `seq` (e.g. vowels А-Е-И-О-У): each rep has its own metric and cue.
 - Without a camera (or "Без камера") the session runs in demo mode with an animated illustrated face.
@@ -29,7 +29,9 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - Background music: generated in the browser (components/music.js, Web Audio pad + bells), no files or licences; toggle in the session top bar, ducks while the coach speaks; AudioContext is unlocked on the "Започни" tap.
 - Occasions (data.js OCCASIONS): Преди снимка, Преди среща, След полет — short programs, chips on Home.
 - Тихо огледало (components/QuietMirror.jsx): desk mode. Calibrates the relaxed face 3 s, then watches frown
-  (inner-brow distance ↓), raised brows, leaning to the screen (face width ↑); sustained 2/2/5 s → soft chime
+  (max of: inner-brow gap ↓, inner brows lowered toward eye corners, model blendshape browDown ↑ — the blendshape
+  works with a high camera), raised brows (geometry or browInnerUp), leaning to the screen (face width ↑); each signal
+  is a level where 1 = threshold, shown live as bars; sustained 1.5/2/5 s → soft chime
   (or voice), on-screen hint, Notification when the tab is hidden; 60 s cooldown per signal; baseline drifts slowly.
   tracker.js switches to a 500 ms timer when the tab is hidden. Picture-in-picture button. Log in localStorage fy-mirror-log.
 - Твоята седмица (components/progress.js + Progress.jsx): camera sessions record per exercise: amp (peak relative change),

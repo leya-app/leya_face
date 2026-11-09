@@ -89,6 +89,7 @@ async function getLandmarker() {
         baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
         runningMode: 'VIDEO',
         numFaces: 1,
+        outputFaceBlendshapes: true,
       });
     })().catch((e) => {
       landmarkerPromise = null;
@@ -119,7 +120,7 @@ async function getHandLandmarker() {
   return handPromise;
 }
 
-// Пуска камерата във <video>, вика onFrame(face | null, hands[]) на всеки кадър.
+// Пуска камерата във <video>, вика onFrame(face | null, hands[], blendshapes | null) на всеки кадър.
 // opts.hands: следи и ръцете (за масажите); лицето и ръцете се редуват по кадри.
 export async function startTracking(video, onFrame, opts = {}) {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -144,6 +145,7 @@ export async function startTracking(video, onFrame, opts = {}) {
   let raf = 0;
   let last = -1;
   let face = null;
+  let blend = null;
   let handList = [];
   let odd = false;
   let timer = 0;
@@ -163,9 +165,12 @@ export async function startTracking(video, onFrame, opts = {}) {
     } else {
       const res = landmarker.detectForVideo(video, now);
       face = res.faceLandmarks && res.faceLandmarks[0] ? res.faceLandmarks[0] : null;
+      // мимики от модела (напр. browDownLeft = свити вежди), 0..1
+      const cats = res.faceBlendshapes && res.faceBlendshapes[0] ? res.faceBlendshapes[0].categories : null;
+      blend = cats ? Object.fromEntries(cats.map((c) => [c.categoryName, c.score])) : null;
     }
     odd = !odd;
-    onFrame(face, handList);
+    onFrame(face, handList, blend);
   };
   loop();
 

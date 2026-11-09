@@ -10,33 +10,52 @@ import { say, silence } from './voice';
 
 const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-// Сигнали спрямо спокойното лице (калибрира се в началото).
+// Признаци от лицето: геометрия + мимики от модела (работят и при камера отгоре).
+function features(L, bs) {
+  const h = d(L[10], L[152]);
+  const avg = (a, b) => (bs && bs[a] != null && bs[b] != null ? (bs[a] + bs[b]) / 2 : null);
+  return {
+    gap: d(L[107], L[336]) / d(L[234], L[454]),                       // разстояние между веждите
+    low: ((d(L[55], L[133]) + d(L[285], L[362])) / 2) / h,            // вътрешните краища на веждите към очите
+    raise: ((d(L[105], L[159]) + d(L[334], L[386])) / 2) / h,         // вежди спрямо клепачите
+    faceW: d(L[234], L[454]),                                         // колко голямо е лицето в кадъра
+    down: avg('browDownLeft', 'browDownRight'),                       // модел: свити вежди
+    up: bs && bs.browInnerUp != null ? bs.browInnerUp : null,          // модел: вдигнати вежди
+  };
+}
+
+// Всеки сигнал връща „ниво“: 1 = прагът е достигнат. k = чувствителност (по-малко = по-чувствително).
 const SIGNALS = {
   frown: {
     label: 'Мръщене',
     hint: 'Отпусни веждите',
     voice: 'Отпусни веждите.',
-    fn: (L) => d(L[107], L[336]) / d(L[234], L[454]),
-    hit: (v, b, k) => v < b * (1 - 0.07 * k),
-    hold: 2,
+    level: (f, b, k) => Math.max(
+      (1 - f.gap / b.gap) / (0.04 * k),
+      (1 - f.low / b.low) / (0.08 * k),
+      f.down != null && b.down != null ? (f.down - b.down) / (0.18 * k) : 0,
+    ),
+    hold: 1.5,
   },
   raise: {
     label: 'Вдигнати вежди',
     hint: 'Пусни веждите, челото е меко',
     voice: 'Отпусни веждите.',
-    fn: (L) => ((d(L[105], L[159]) + d(L[334], L[386])) / 2) / d(L[10], L[152]),
-    hit: (v, b, k) => v > b * (1 + 0.12 * k),
+    level: (f, b, k) => Math.max(
+      (f.raise / b.raise - 1) / (0.12 * k),
+      f.up != null && b.up != null ? (f.up - b.up) / (0.3 * k) : 0,
+    ),
     hold: 2,
   },
   lean: {
     label: 'Навеждане към екрана',
     hint: 'Изправи главата, раменете назад',
     voice: 'Изправи главата.',
-    fn: (L) => d(L[234], L[454]),
-    hit: (v, b, k) => v > b * (1 + 0.15 * k),
+    level: (f, b, k) => (f.faceW / b.faceW - 1) / (0.15 * k),
     hold: 5,
   },
 };
+const FEATS = ['gap', 'low', 'raise', 'faceW', 'down', 'up'];
 const KEYS = Object.keys(SIGNALS);
 const COOLDOWN = 60;
 
@@ -102,18 +121,18 @@ function MirrorRun({ opts, onStop }) {
   const [paused, setPaused] = useState(false);
   const [toast, setToast] = useState(null);
   const [, force] = useState(0);
-  const S = useRef({ base: null, samples: {}, startedAt: Date.now(), calibT: 0, over: {}, last: {}, counts: { frown: 0, raise: 0, lean: 0 }, events: [], noFace: 0 });
+  const S = useRef({ base: null, samples: {}, startedAt: Date.now(), calibT: 0, over: {}, last: {}, counts: { frown: 0, raise: 0, lean: 0 }, levels: { frown: 0, raise: 0, lean: 0 }, events: [], noFace: 0 });
   const pausedRef = useRef(false); pausedRef.current = paused;
   const optsRef = useRef(opts); optsRef.current = opts;
   const lastT = useRef(performance.now());
 
   useEffect(() => {
     let stop = null; let cancelled = false;
-    startTracking(videoRef.current, (L) => onFace(L))
+    startTracking(videoRef.current, (L, _h, bs) => onFace(L, bs))
       .then((s) => { if (cancelled) s(); else { stop = s; setCam('on'); } })
       .catch(() => { if (!cancelled) setCam('failed'); });
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-    const iv = setInterval(() => force((n) => n + 1), 1000);
+    const iv = setInterval(() => force((n) => n + 1), 200);
     return () => { cancelled = true; if (stop) stop(); clearInterval(iv); silence(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -129,33 +148,39 @@ function MirrorRun({ opts, onStop }) {
     }
   }
 
-  function onFace(L) {
+  function onFace(L, bs) {
     const now = performance.now(); const dt = Math.min(1, (now - lastT.current) / 1000); lastT.current = now;
     const s = S.current;
     if (pausedRef.current) return;
     if (!L) { s.noFace += dt; return; }
     s.noFace = 0;
+    const f = features(L, bs);
     if (!s.base) {
       s.calibT += dt;
-      for (const k of KEYS) (s.samples[k] ||= []).push(SIGNALS[k].fn(L));
-      if (s.calibT > 3 && s.samples.frown.length > 10) {
+      for (const k of FEATS) if (f[k] != null) (s.samples[k] ||= []).push(f[k]);
+      if (s.calibT > 3 && (s.samples.gap || []).length > 10) {
         s.base = {};
-        for (const k of KEYS) { const a = [...s.samples[k]].sort((x, y) => x - y); s.base[k] = a[Math.floor(a.length / 2)]; }
+        for (const k of FEATS) {
+          const a = [...(s.samples[k] || [])].sort((x, y) => x - y);
+          s.base[k] = a.length ? a[Math.floor(a.length / 2)] : null;
+        }
       }
       return;
     }
-    const t = Date.now() / 1000;
-    for (const k of KEYS) {
-      if (!optsRef.current[k]) continue;
-      const sig = SIGNALS[k]; const v = sig.fn(L);
-      if (sig.hit(v, s.base[k], optsRef.current.sens)) {
-        s.over[k] = (s.over[k] || 0) + dt;
-        if (s.over[k] >= sig.hold && t - (s.last[k] || 0) > COOLDOWN) { s.last[k] = t; s.over[k] = 0; alert(k); }
-      } else {
-        s.over[k] = Math.max(0, (s.over[k] || 0) - dt * 2);
-        // бавно следваме спокойното лице (стойка, светлина)
-        s.base[k] = s.base[k] * 0.999 + v * 0.001;
-      }
+    const t = Date.now() / 1000; const k = optsRef.current.sens;
+    for (const key of KEYS) {
+      const sig = SIGNALS[key];
+      const lvl = sig.level(f, s.base, k);
+      s.levels[key] = Math.max(0, Math.min(1.5, lvl));
+      if (!optsRef.current[key]) continue;
+      if (lvl >= 1) {
+        s.over[key] = (s.over[key] || 0) + dt;
+        if (s.over[key] >= sig.hold && t - (s.last[key] || 0) > COOLDOWN) { s.last[key] = t; s.over[key] = 0; alert(key); }
+      } else s.over[key] = Math.max(0, (s.over[key] || 0) - dt * 2);
+    }
+    // бавно следваме спокойното лице (стойка, светлина) – само когато всичко е спокойно
+    if (KEYS.every((key) => s.levels[key] < 0.4)) {
+      for (const key of FEATS) if (f[key] != null && s.base[key] != null) s.base[key] = s.base[key] * 0.998 + f[key] * 0.002;
     }
   }
 
@@ -192,11 +217,12 @@ function MirrorRun({ opts, onStop }) {
           <div key={k} className={`metric ${opts[k] ? '' : 'off'}`}>
             <div className="muted small">{SIGNALS[k].label}</div>
             <div className="display-22">{s.counts[k]}</div>
+            <div className="bar" title="Колко близо е до подсказка"><div style={{ width: `${Math.min(100, (s.levels[k] || 0) * 100)}%`, background: (s.levels[k] || 0) >= 1 ? 'var(--peach)' : 'var(--sage)' }} /></div>
           </div>
         ))}
       </div>
 
-      <p className="fine" style={{ textAlign: 'left' }}>Може да минеш в друг раздел или прозорец – огледалото продължава да следи. С „Малък прозорец“ виждаш себе си в ъгъла на екрана.</p>
+      <p className="fine" style={{ textAlign: 'left' }}>Лентите показват колко близо си до подсказка – смръщи се, за да видиш как реагира. Може да минеш в друг раздел или прозорец – огледалото продължава да следи. С „Малък прозорец“ виждаш себе си в ъгъла на екрана.</p>
 
       <div className="bottom-actions">
         <button className="btn-ghost" style={{ width: '100%' }} onClick={pip}>Малък прозорец</button>
