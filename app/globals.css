@@ -263,3 +263,5 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 .week-big { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .week-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .progress-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--surface); }
+
+.pip-source { position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }

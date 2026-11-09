@@ -125,6 +125,43 @@ function MirrorRun({ opts, onStop }) {
   const pausedRef = useRef(false); pausedRef.current = paused;
   const optsRef = useRef(opts); optsRef.current = opts;
   const lastT = useRef(performance.now());
+  // Малкият прозорец: собствено платно – огледален образ, цветна рамка и надпис на български.
+  const pipCanvas = useRef(null);
+  const pipVideo = useRef(null);
+  const statusRef = useRef({ color: '#9CC5A1', text: 'Спокойно' });
+  const [inPip, setInPip] = useState(false);
+
+  useEffect(() => {
+    const draw = () => {
+      const c = pipCanvas.current; const v = videoRef.current;
+      if (!c || !v || !v.videoWidth) return;
+      const ctx = c.getContext('2d'); const W = c.width; const H = c.height;
+      const sc = Math.max(W / v.videoWidth, H / v.videoHeight);
+      const dw = v.videoWidth * sc; const dh = v.videoHeight * sc;
+      ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
+      ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.restore();
+      const { color, text } = statusRef.current;
+      ctx.lineWidth = 10; ctx.strokeStyle = color; ctx.strokeRect(5, 5, W - 10, H - 10);
+      ctx.font = '600 22px "Golos Text", system-ui, sans-serif';
+      const tw = ctx.measureText(text).width;
+      ctx.fillStyle = 'rgba(23,20,28,0.8)';
+      ctx.beginPath(); ctx.roundRect((W - tw) / 2 - 16, H - 52, tw + 32, 36, 18); ctx.fill();
+      ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, W / 2, H - 34);
+    };
+    const iv = setInterval(draw, 150);
+    const pv = pipVideo.current;
+    const on = () => setInPip(true); const off = () => setInPip(false);
+    pv?.addEventListener('enterpictureinpicture', on);
+    pv?.addEventListener('leavepictureinpicture', off);
+    return () => {
+      clearInterval(iv);
+      pv?.removeEventListener('enterpictureinpicture', on);
+      pv?.removeEventListener('leavepictureinpicture', off);
+      if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     let stop = null; let cancelled = false;
@@ -190,9 +227,26 @@ function MirrorRun({ opts, onStop }) {
   const recent = toast && Date.now() - toast.at < 6000;
   const status = cam !== 'on' ? null : !s.base ? 'calib' : s.noFace > 3 ? 'away' : recent ? 'alert' : 'calm';
 
-  const pip = async () => {
-    try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await videoRef.current.requestPictureInPicture(); } catch {}
+  statusRef.current = {
+    color: status === 'alert' ? '#F2B49B' : status === 'calm' ? '#9CC5A1' : '#BDB2BA',
+    text: paused ? 'На пауза' : status === 'calib' ? 'Гледай спокойно…' : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : 'Спокойно',
   };
+
+  const pip = async () => {
+    const pv = pipVideo.current;
+    try {
+      if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+      if (pv && pipCanvas.current?.captureStream) {
+        if (!pv.srcObject) pv.srcObject = pipCanvas.current.captureStream(10);
+        await pv.play();
+        await pv.requestPictureInPicture();
+        return;
+      }
+    } catch {}
+    // резерва: самата камера
+    try { await videoRef.current.requestPictureInPicture(); } catch {}
+  };
+
   const stop = () => onStop({ minutes: Math.max(1, Math.round((Date.now() - s.startedAt) / 60000)), counts: { ...s.counts }, events: s.events, startedAt: s.startedAt });
 
   return (
@@ -206,7 +260,9 @@ function MirrorRun({ opts, onStop }) {
       </div>
 
       <div className={`mirror-status ${status || ''} ${paused ? 'paused' : ''}`}>
-        <video ref={videoRef} className="mirror mirror-preview" playsInline muted />
+        <video ref={videoRef} className="mirror mirror-preview" playsInline muted disablePictureInPicture />
+        <canvas ref={pipCanvas} width="480" height="360" className="pip-source" aria-hidden="true" />
+        <video ref={pipVideo} className="pip-source" playsInline muted aria-hidden="true" />
         <div className="mirror-badge">
           {paused ? 'На пауза' : status === 'calib' ? 'Гледай екрана спокойно…' : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : cam === 'failed' ? 'Камерата не е достъпна' : cam === 'starting' ? 'Пускам камерата…' : 'Спокойно'}
         </div>
@@ -225,7 +281,7 @@ function MirrorRun({ opts, onStop }) {
       <p className="fine" style={{ textAlign: 'left' }}>Лентите показват колко близо си до подсказка – смръщи се, за да видиш как реагира. Може да минеш в друг раздел или прозорец – огледалото продължава да следи. С „Малък прозорец“ виждаш себе си в ъгъла на екрана.</p>
 
       <div className="bottom-actions">
-        <button className="btn-ghost" style={{ width: '100%' }} onClick={pip}>Малък прозорец</button>
+        <button className="btn-ghost" style={{ width: '100%' }} onClick={pip}>{inPip ? 'Затвори малкия прозорец' : 'Малък прозорец'}</button>
         <button className="cta sage-cta" onClick={stop}>Край и отчет</button>
       </div>
     </section>
