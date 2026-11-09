@@ -8,7 +8,12 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 ## Current state (stage 1)
 - Next.js 16 (App Router, plain JS). Port of the approved Claude Design canvas
   "Йога за лице – екран упражнение" (Home, Zones, Intro, Main artboards).
-- Screens: Начало (Сутрин / Вечер / Избери зона) → Зони (чело, очи, назолабиални, шия) → Интро → Сесия → Готово.
+- Screens: Начало (Сутрин / Вечер / Избери зона / Масажи) → Зони (чело, очи, назолабиални, шия) → Интро → Сесия → Готово.
+- Massages (components/massage.js + Massage.jsx): 8 massages (neck drainage, jaw circles, oval, cheeks, under eyes,
+  between brows, forehead, temples) + "Цялото лице" sequence. Each has a path per side: stroke (p0→p1→p2) or circle (c, r),
+  in illustration coords (demo) and from face landmarks (live). Camera mode also runs MediaPipe Hand Landmarker
+  (fingertip = avg of index+middle tips; face and hands alternate frames) and counts strokes (t 0.3→0.8 along the path)
+  or full circles; pace = stroke duration vs tempo. No hands for 9 s → counts by tempo. Without camera → demo by tempo.
 - `components/data.js`: exercises, programs, zones (prototype content, no medical claims).
 - `components/tracker.js`: camera + MediaPipe Face Landmarker, on-device only. WASM is served from
   `public/mediapipe`, the model from Google's storage. Metrics: brows, eyesOpen, eyesClose, smile, mouthO,
@@ -31,7 +36,6 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 
 ## Next ideas (from Mariya, not decided yet)
 - More workouts.
-- A massage section (самомасаж на лицето).
 - Personal programs (Premium): a program assigned to ONE user only (owner = user id; Supabase row-level security
   so only that user and the trainer who made it can read it). Phase 1: trainer builds it from our exercise library
   (order, reps, hold, days) → camera tracking works everywhere. Trainer's own exercises run on a timer (text + steps).

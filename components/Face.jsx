@@ -1,7 +1,7 @@
 'use client';
 
 // Стилизирано лице. zone = подсветената зона, metric + p (0..1) = движението.
-export default function Face({ zone, metric, p = 0, muted = false, guides = false, size = 240, label }) {
+export default function Face({ zone, metric, p = 0, muted = false, guides = false, size = 240, label, children }) {
   const skin = muted ? '#6B5563' : '#F1DCD2';
   const neckSkin = muted ? '#5C4855' : '#E6CBBF';
   const feature = muted ? '#2A2330' : '#5A3F4A';
@@ -96,6 +96,7 @@ export default function Face({ zone, metric, p = 0, muted = false, guides = fals
         <path d="M130 172 L124 204 Q130 209 136 204" fill="none" stroke={muted ? '#8A7280' : '#C9A99C'} strokeWidth="2" />
         {mouth}
       </g>
+          {children}
     </svg>
   );
 }

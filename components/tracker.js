@@ -93,8 +93,30 @@ async function getLandmarker() {
   return landmarkerPromise;
 }
 
-// Пуска камерата във <video>, вика onFrame(landmarks | null) на всеки кадър.
-export async function startTracking(video, onFrame) {
+const HAND_URL =
+  'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+let handPromise = null;
+async function getHandLandmarker() {
+  if (!handPromise) {
+    handPromise = (async () => {
+      const { HandLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+      const fileset = await FilesetResolver.forVisionTasks('/mediapipe');
+      return HandLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: HAND_URL, delegate: 'GPU' },
+        runningMode: 'VIDEO',
+        numHands: 2,
+      });
+    })().catch((e) => {
+      handPromise = null;
+      throw e;
+    });
+  }
+  return handPromise;
+}
+
+// Пуска камерата във <video>, вика onFrame(face | null, hands[]) на всеки кадър.
+// opts.hands: следи и ръцете (за масажите); лицето и ръцете се редуват по кадри.
+export async function startTracking(video, onFrame, opts = {}) {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
     audio: false,
@@ -105,8 +127,10 @@ export async function startTracking(video, onFrame) {
   await video.play();
 
   let landmarker;
+  let hands = null;
   try {
     landmarker = await getLandmarker();
+    if (opts.hands) hands = await getHandLandmarker().catch(() => null);
   } catch (e) {
     stream.getTracks().forEach((t) => t.stop());
     throw e;
@@ -114,12 +138,23 @@ export async function startTracking(video, onFrame) {
 
   let raf = 0;
   let last = -1;
+  let face = null;
+  let handList = [];
+  let odd = false;
   const loop = () => {
     raf = requestAnimationFrame(loop);
     if (video.readyState < 2 || video.currentTime === last) return;
     last = video.currentTime;
-    const res = landmarker.detectForVideo(video, performance.now());
-    onFrame(res.faceLandmarks && res.faceLandmarks[0] ? res.faceLandmarks[0] : null);
+    const now = performance.now();
+    if (hands && odd) {
+      const r = hands.detectForVideo(video, now);
+      handList = r.landmarks || [];
+    } else {
+      const res = landmarker.detectForVideo(video, now);
+      face = res.faceLandmarks && res.faceLandmarks[0] ? res.faceLandmarks[0] : null;
+    }
+    odd = !odd;
+    onFrame(face, handList);
   };
   loop();
 

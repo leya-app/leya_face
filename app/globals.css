@@ -207,3 +207,20 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 /* марка */
 .wordmark { font-family: var(--display); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: var(--peach); }
 .wordmark b { font-weight: 600; }
+
+/* масажи */
+.pink-bg { background: #E9C9DA !important; color: #6A3A55; }
+.massage-full { position: relative; overflow: hidden; padding: 20px; border-radius: 28px; border: 0; background: #E9C9DA; color: #17141C; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; }
+.massage-full .card-eyebrow { color: #6A3A55; opacity: 1; }
+.massage-full .small { color: #3A2430; font-weight: 500; }
+.pink-play { color: #E9C9DA; flex: none; }
+.massage-rows { display: flex; flex-direction: column; gap: 8px; }
+.massage-row { padding: 10px 14px 10px 10px; border-radius: 20px; border: 0; background: var(--surface); display: flex; align-items: center; gap: 14px; text-align: left; }
+.massage-thumb { flex: none; width: 52px; height: 52px; border-radius: 14px; background: #2F2737; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.massage-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 16px; }
+.care-note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(246,241,238,0.16); font-size: 13px; line-height: 1.45; color: var(--muted); }
+.care-icon { flex: none; color: var(--peach); margin-top: 1px; }
+.pink-chip { left: 14px; background: #E9C9DA; color: #3A2430; font-weight: 600; }
+.pink-cta { background: #E9C9DA; }
+.warn { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(242,180,155,0.12); color: #F6D6C9; font-size: 14px; line-height: 1.4; }
+.warn svg { flex: none; color: var(--peach); }
