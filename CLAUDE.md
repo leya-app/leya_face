@@ -27,6 +27,15 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   then regenerate public/voice/index.json.
 - Reps: reach → hold (countdown) → relax 3 s (ring counts down, coach announces the next rep/exercise). With the camera the reach threshold drops after 6 s and hold starts anyway after 10 s, so a session never stalls.
 - Background music: generated in the browser (components/music.js, Web Audio pad + bells), no files or licences; toggle in the session top bar, ducks while the coach speaks; AudioContext is unlocked on the "Започни" tap.
+- Occasions (data.js OCCASIONS): Преди снимка, Преди среща, След полет — short programs, chips on Home.
+- Тихо огледало (components/QuietMirror.jsx): desk mode. Calibrates the relaxed face 3 s, then watches frown
+  (inner-brow distance ↓), raised brows, leaning to the screen (face width ↑); sustained 2/2/5 s → soft chime
+  (or voice), on-screen hint, Notification when the tab is hidden; 60 s cooldown per signal; baseline drifts slowly.
+  tracker.js switches to a 500 ms timer when the tab is hidden. Picture-in-picture button. Log in localStorage fy-mirror-log.
+- Твоята седмица (components/progress.js + Progress.jsx): camera sessions record per exercise: amp (peak relative change),
+  stab (hold steadiness 1 − sd/mean of progress), sym (left/right ratio for brows/smile/cheekLift via browL/R, cornerL/R
+  metrics). Stored in localStorage fy-progress; Home card + screen compare last 7 days vs previous 7 (first week: first
+  2 vs last 2 sessions). Wording measures movement only — never skin or wrinkles.
 - Streak days kept in localStorage only.
 
 ## Conventions
@@ -35,7 +44,8 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - No medical claims; label AI content; face data never leaves the device (GDPR).
 
 ## Next ideas (from Mariya, not decided yet)
-- More workouts.
+- More workouts (Mariya will send ideas).
+- Later: auto-aligned face time-lapse (day 1 → day N video) and 15-second shareable clip with AR overlay.
 - Personal programs (Premium): a program assigned to ONE user only (owner = user id; Supabase row-level security
   so only that user and the trainer who made it can read it). Phase 1: trainer builds it from our exercise library
   (order, reps, hold, days) → camera tracking works everywhere. Trainer's own exercises run on a timer (text + steps).

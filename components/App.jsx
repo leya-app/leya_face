@@ -5,6 +5,8 @@ import Face from './Face';
 import { Icon } from './icons';
 import { MassageList, MassageIntro, MassageSession } from './Massage';
 import QuietMirror from './QuietMirror';
+import { saveProgress } from './progress';
+import Progress, { WeekCard } from './Progress';
 import { EXERCISES, PROGRAMS, ZONES, OCCASIONS, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
 import { unlockAudio, startMusic, stopMusic } from './music';
@@ -95,7 +97,8 @@ export default function App() {
 
   return (
     <main className="shell">
-      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} />}
+      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} days={days} onProgress={() => go('progress')} />}
+      {screen.name === 'progress' && <Progress days={days} onBack={() => go('home')} />}
       {screen.name === 'mirror' && <QuietMirror onBack={() => go('home')} />}
       {screen.name === 'massages' && <MassageList onBack={() => go('home')} onPick={(keys) => go('massageIntro', { keys })} />}
       {screen.name === 'massageIntro' && (
@@ -135,7 +138,7 @@ export default function App() {
 
 /* ---------- начало ---------- */
 
-function Home({ streak, onProgram, onZones, onMassages, onMirror }) {
+function Home({ streak, onProgram, onZones, onMassages, onMirror, days, onProgress }) {
   const [now, setNow] = useState(null);
   useEffect(() => setNow(new Date()), []);
   const h = now ? now.getHours() : 9;
@@ -156,6 +159,8 @@ function Home({ streak, onProgram, onZones, onMassages, onMirror }) {
       </header>
 
       {streak > 0 && <div className="streak">{daysWord(streak)} поред</div>}
+
+      <WeekCard days={days} onOpen={onProgress} />
 
       <button className={`program-card peach ${h >= 18 ? '' : 'suggested'}`} onClick={() => onProgram('morning')}>
         <svg aria-hidden="true" className="card-art" width="150" height="150" viewBox="0 0 150 150">
@@ -380,6 +385,7 @@ const ZONE_POINTS = {
 };
 
 const RELAX_SEC = 3;
+const SYM_PAIRS = { brows: ['browL', 'browR'], smile: ['cornerL', 'cornerR'], cheekLift: ['cornerL', 'cornerR'] };
 
 // Упражнение с поредица (напр. гласни): всяко повторение има своя метрика и реплика.
 const metricOf = (ex, rep) => (ex.seq ? ex.seq[rep % ex.seq.length].metric : ex.metric);
@@ -406,7 +412,7 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
 
   const S = useRef({
     idx: 0, phase: 'next', t: 0, rep: 0, holdLeft: 0, p: 0, base: null, samples: {},
-    noFace: false, done: 0, started: Date.now(), cue: '', reachedAt: 1,
+    noFace: false, done: 0, started: Date.now(), cue: '', reachedAt: 1, stats: {},
   });
   const [, force] = useState(0);
 
@@ -468,11 +474,33 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
     if (cue) { s.cue = cue; say(voice || [cue], soundRef.current); }
   }
 
+  // „Твоята седмица“: обхват на движението, стабилност на задържането, симетрия ляво–дясно
+  function recordStat(key, metric, value, L) {
+    const s = S.current;
+    if (!L || !s.base || (s.phase !== 'reach' && s.phase !== 'hold')) return;
+    const st = (s.stats[key] ||= { metric, amp: 0, hold: [], symSum: 0, symN: 0 });
+    const b = s.base[metric];
+    if (metric !== 'calm' && b) {
+      const amp = METRICS[metric].mode === 'delta' ? Math.abs(value - b) : Math.abs(value / b - 1);
+      st.amp = Math.max(st.amp, amp);
+    }
+    if (s.phase === 'hold') {
+      st.hold.push(s.p);
+      const pair = SYM_PAIRS[metric];
+      if (pair) {
+        const cl = Math.abs(METRICS[pair[0]].fn(L) / s.base[pair[0]] - 1);
+        const cr = Math.abs(METRICS[pair[1]].fn(L) / s.base[pair[1]] - 1);
+        if (Math.max(cl, cr) > 0.03) { st.symSum += Math.min(cl, cr) / Math.max(cl, cr); st.symN += 1; }
+      }
+    }
+  }
+
   function nextExercise() {
     const s = S.current;
     s.done += 1;
     if (s.idx + 1 >= program.list.length) {
       say(['Готово! Браво.'], soundRef.current);
+      saveProgress(s.stats);
       onDone({ exercises: s.done, minutes: Math.max(1, Math.round((Date.now() - s.started) / 60000)), title: program.title });
       return;
     }
@@ -531,6 +559,7 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
     if (live) {
       const target = progressFor(metric, value, s.base[metric]);
       s.p += (target - s.p) * Math.min(1, dt * 10);
+      recordStat(program.list[s.idx], metric, value, L);
     } else if (s.phase === 'reach') s.p = Math.min(1, s.p + dt / 1.1);
     else if (s.phase === 'hold') s.p = 0.92 + 0.05 * Math.sin(s.t * 3);
     else if (s.phase === 'relax') s.p = Math.max(0, s.p - dt / 0.9);

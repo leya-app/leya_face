@@ -56,6 +56,11 @@ export const METRICS = {
     mode: 'rel', target: -0.1,
     fn: (L) => ((d(L[145], L[205]) + d(L[374], L[425])) / 2) / d(L[10], L[152]),
   },
+  // за симетрията: лявата и дясната половина поотделно
+  browL: { mode: 'rel', target: 0.2, fn: (L) => d(L[105], L[159]) / d(L[10], L[152]) },
+  browR: { mode: 'rel', target: 0.2, fn: (L) => d(L[334], L[386]) / d(L[10], L[152]) },
+  cornerL: { mode: 'rel', target: 0.1, fn: (L) => d(L[61], L[1]) / d(L[10], L[152]) },
+  cornerR: { mode: 'rel', target: 0.1, fn: (L) => d(L[291], L[1]) / d(L[10], L[152]) },
   tilt: {
     mode: 'abs', target: 14,
     fn: (L) => (Math.atan2(L[263].y - L[33].y, L[263].x - L[33].x) * 180) / Math.PI,

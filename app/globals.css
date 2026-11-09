@@ -250,3 +250,16 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 .mirror-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .mirror-counts .metric.off { opacity: 0.4; }
 .summary-card { padding: 16px; border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+
+/* твоята седмица */
+.week-card { padding: 16px 18px; border-radius: 24px; border: 1px solid rgba(156,197,161,0.3); background: var(--surface); display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.week-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.week-title { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.week-dots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.week-dot { height: 8px; border-radius: 8px; background: rgba(246,241,238,0.14); }
+.week-dot.on { background: var(--sage); }
+.week-dot.big { width: 28px; height: 28px; border-radius: 999px; }
+.week-lines { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #CDE6D0; }
+.week-big { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.week-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.progress-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--surface); }
