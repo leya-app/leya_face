@@ -61,7 +61,7 @@ function Spark({ values }) {
   );
 }
 
-export default function Progress({ days, onBack }) {
+export default function Progress({ days, onBack, onTimelapse }) {
   const w = useWeekly(days);
   if (!w) return <section className="screen" />;
   const l = w.ready ? lines(w) : [];
@@ -97,6 +97,15 @@ export default function Progress({ days, onBack }) {
         <div className="metric"><div className="muted small">Стабилност</div><div className="display-22">{w.stab != null ? pct(w.stab) : '—'}</div></div>
         <div className="metric"><div className="muted small">Симетрия</div><div className="display-22">{w.sym != null ? `${Math.round(w.sym * 100)}%` : '—'}</div></div>
       </div>
+
+      <button className="zone-row" onClick={onTimelapse}>
+        <span className="zone-row-icon pink-bg">{Icon.cam}</span>
+        <span className="zone-row-text">
+          <span className="zone-row-title">Таймлапс</span>
+          <span className="muted small">Видео на лицето ти: ден 1 → ден 30</span>
+        </span>
+        <span className="muted">{Icon.chevron}</span>
+      </button>
 
       {l.length > 0 && <div className="summary-card">{l.map((t) => <div key={t}>{t}</div>)}</div>}
 

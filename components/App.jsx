@@ -7,6 +7,8 @@ import { MassageList, MassageIntro, MassageSession } from './Massage';
 import QuietMirror from './QuietMirror';
 import { saveProgress } from './progress';
 import Progress, { WeekCard } from './Progress';
+import Timelapse from './Timelapse';
+import { captureAligned, saveToday, isOn as timelapseOn } from './timelapse';
 import { EXERCISES, PROGRAMS, ZONES, OCCASIONS, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
 import { unlockAudio, startMusic, stopMusic } from './music';
@@ -98,7 +100,8 @@ export default function App() {
   return (
     <main className="shell">
       {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} days={days} onProgress={() => go('progress')} />}
-      {screen.name === 'progress' && <Progress days={days} onBack={() => go('home')} />}
+      {screen.name === 'progress' && <Progress days={days} onBack={() => go('home')} onTimelapse={() => go('timelapse')} />}
+      {screen.name === 'timelapse' && <Timelapse onBack={() => go('progress')} />}
       {screen.name === 'mirror' && <QuietMirror onBack={() => go('home')} />}
       {screen.name === 'massages' && <MassageList onBack={() => go('home')} onPick={(keys) => go('massageIntro', { keys })} />}
       {screen.name === 'massageIntro' && (
@@ -548,6 +551,11 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
         for (const m of ALL_METRICS) {
           const sorted = [...s.samples[m]].sort((a, b) => a - b);
           s.base[m] = sorted[Math.floor(sorted.length / 2)];
+        }
+        // таймлапс: една снимка на спокойното лице на тренировка (последната за деня остава)
+        if (!s.captured && L && timelapseOn()) {
+          s.captured = true;
+          Promise.resolve(captureAligned(videoRef.current, L)).then(saveToday).catch(() => {});
         }
         s.samples = {};
         setPhase('reach', cues.reach);

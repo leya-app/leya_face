@@ -38,6 +38,11 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   stab (hold steadiness 1 − sd/mean of progress), sym (left/right ratio for brows/smile/cheekLift via browL/R, cornerL/R
   metrics). Stored in localStorage fy-progress; Home card + screen compare last 7 days vs previous 7 (first week: first
   2 vs last 2 sessions). Wording measures movement only — never skin or wrinkles.
+- Таймлапс (components/timelapse.js + Timelapse.jsx, opt-in, localStorage fy-timelapse): when the first calibration of a
+  camera session finishes (relaxed face), one frame is captured, aligned by eye centres (fixed positions, mirrored like a
+  selfie, 480×600 JPEG) and stored per day in IndexedDB "facetetica"/frames. Screen (from Твоята седмица): grid, delete,
+  "Направи видео" = canvas + MediaRecorder (mp4 if supported, else webm), 0.45 s per day with crossfade, "Ден N" +
+  wordmark; share via Web Share files or download. Nothing leaves the device unless the user shares.
 - Streak days kept in localStorage only.
 
 ## Conventions
@@ -47,7 +52,8 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 
 ## Next ideas (from Mariya, not decided yet)
 - More workouts (Mariya will send ideas).
-- Later: auto-aligned face time-lapse (day 1 → day N video) and 15-second shareable clip with AR overlay.
+- Later: 15-second shareable clip with AR overlay.
+- Marketing: ads link straight to the App Store / Google Play listing (no own domain needed yet).
 - Personal programs (Premium): a program assigned to ONE user only (owner = user id; Supabase row-level security
   so only that user and the trainer who made it can read it). Phase 1: trainer builds it from our exercise library
   (order, reps, hold, days) → camera tracking works everywhere. Trainer's own exercises run on a timer (text + steps).
