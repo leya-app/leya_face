@@ -43,6 +43,10 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   selfie, 480×600 JPEG) and stored per day in IndexedDB "facetetica"/frames. Screen (from Твоята седмица): grid, delete,
   "Направи видео" = canvas + MediaRecorder (mp4 if supported, else webm), 0.45 s per day with crossfade, "Ден N" +
   wordmark; share via Web Share files or download. Nothing leaves the device unless the user shares.
+- 15-second clip (components/clip.js): "● 15 сек" button in the exercise session (camera mode only). Offscreen 720×1280
+  canvas: mirrored video, landmark dots, wordmark, exercise + program, rep counter, hold ring, coach cue, progress line;
+  MediaRecorder (mp4 if supported) with audio from music.js recordingAudio() (music + recorded voice). Afterwards the
+  session pauses and a sheet offers Share (Web Share files) / Save / Close.
 - Streak days kept in localStorage only.
 
 ## Conventions
@@ -52,7 +56,6 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 
 ## Next ideas (from Mariya, not decided yet)
 - More workouts (Mariya will send ideas).
-- Later: 15-second shareable clip with AR overlay.
 - Marketing: ads link straight to the App Store / Google Play listing (no own domain needed yet).
 - Personal programs (Premium): a program assigned to ONE user only (owner = user id; Supabase row-level security
   so only that user and the trainer who made it can read it). Phase 1: trainer builds it from our exercise library

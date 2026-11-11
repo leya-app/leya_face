@@ -9,6 +9,7 @@ import { saveProgress } from './progress';
 import Progress, { WeekCard } from './Progress';
 import Timelapse from './Timelapse';
 import { captureAligned, saveToday, isOn as timelapseOn } from './timelapse';
+import { recordClip } from './clip';
 import { EXERCISES, PROGRAMS, ZONES, OCCASIONS, programMinutes, countWord } from './data';
 import { METRICS, progressFor, startTracking } from './tracker';
 import { unlockAudio, startMusic, stopMusic } from './music';
@@ -412,6 +413,8 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
   pausedRef.current = paused;
+  const [clip, setClip] = useState(null); // { progress } докато записва, { url, blob } след това
+  const clipRef = useRef(null);
 
   const S = useRef({
     idx: 0, phase: 'next', t: 0, rep: 0, holdLeft: 0, p: 0, base: null, samples: {},
@@ -434,7 +437,7 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
   useEffect(() => {
     let lock;
     navigator.wakeLock?.request('screen').then((l) => { lock = l; }).catch(() => {});
-    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); stopMusic(); silence(); };
+    return () => { lock?.release?.().catch(() => {}); window.speechSynthesis?.cancel(); stopMusic(); silence(); clipRef.current?.cancel(); };
   }, []);
 
   // зареждаме записите за тази тренировка предварително
@@ -647,6 +650,38 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
   const holdFrac = s.phase === 'hold' ? Math.max(0, s.holdLeft) / ex.hold : s.phase === 'relax' ? Math.max(0, 1 - s.t / RELAX_SEC) : 1;
   const exFrac = (s.rep + (s.phase === 'relax' ? 1 : 0)) / ex.reps;
 
+  function clipState() {
+    const st = S.current; const e = EXERCISES[program.list[st.idx]]; const m = metricOf(e, st.rep);
+    return {
+      L: landmarks.current, points: m ? ZONE_POINTS[m] : null, good: st.p >= 0.85,
+      title: e.title, sub: program.title,
+      rep: Math.min(e.reps, st.rep + 1), reps: st.phase === 'next' ? null : e.reps,
+      holdFrac: st.phase === 'hold' ? Math.max(0, st.holdLeft) / e.hold : st.phase === 'relax' ? 0 : 1,
+      holdText: st.phase === 'next' ? null : String(st.phase === 'hold' ? Math.max(1, Math.ceil(st.holdLeft)) : e.hold),
+      cue: st.phase === 'next' ? e.about : st.cue,
+    };
+  }
+  function startClip() {
+    if (clip || !videoRef.current) return;
+    setClip({ progress: 0 });
+    try {
+      const job = recordClip(videoRef.current, clipState, { seconds: 15, onTick: (pr) => setClip((c) => (c && c.progress != null ? { progress: pr } : c)) });
+      clipRef.current = job;
+      job.promise.then((blob) => {
+        const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        const name = `facetetica-${program.list[S.current.idx]}.${ext}`;
+        const file = new File([blob], name, { type: blob.type });
+        const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+        setPaused(true);
+        setClip({ url: URL.createObjectURL(blob), blob, file, name, canShare });
+      }).catch(() => setClip(null));
+    } catch { setClip(null); }
+  }
+  async function shareClip() {
+    try { await navigator.share({ files: [clip.file], title: 'FACEtetica – йога за лице' }); } catch {}
+  }
+  function closeClip() { if (clip?.url) URL.revokeObjectURL(clip.url); setClip(null); setPaused(false); }
+
   const skip = () => { window.speechSynthesis?.cancel(); nextExercise(); };
 
   return (
@@ -739,9 +774,30 @@ function Session({ programKey, wantCamera, sound, onSound, music, onMusic, onExi
         </div>
         <div className="controls">
           <button className="btn-light" onClick={() => setPaused((x) => !x)}>{paused ? Icon.play : Icon.pause} {paused ? 'Продължи' : 'Пауза'}</button>
+          {camState === 'on' && (
+            <button className={`btn-ghost rec-btn ${clip && clip.progress != null ? 'recording' : ''}`} onClick={startClip} disabled={!!clip}
+              aria-label="Запиши 15 секунди видео">
+              <span className="rec-dot" />{clip && clip.progress != null ? `${Math.ceil(15 * (1 - clip.progress))} сек` : '15 сек'}
+            </button>
+          )}
           <button className="btn-ghost" onClick={skip}>Пропусни</button>
         </div>
       </div>
+
+      {clip && clip.url && (
+        <div className="clip-sheet" role="dialog" aria-label="Видеото е готово">
+          <div className="clip-card">
+            <div className="display-15" style={{ textAlign: 'left' }}>Видеото е готово</div>
+            <video className="clip-video" src={clip.url} controls playsInline autoPlay loop />
+            <div className="controls">
+              {clip.canShare && <button className="btn-light" onClick={shareClip}>Сподели</button>}
+              <a className="btn-ghost tl-save" href={clip.url} download={clip.name}>Запази</a>
+              <button className="btn-ghost" onClick={closeClip}>Затвори</button>
+            </div>
+            <div className="fine">Видеото е само на телефона ти, докато не го споделиш.</div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -276,3 +276,14 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 .tl-video { width: 100%; max-width: 100%; aspect-ratio: 4 / 5; border-radius: 20px; background: #000; }
 .tl-save { display: flex; align-items: center; justify-content: center; text-decoration: none; color: var(--ink); }
 .link-btn { align-self: flex-start; border: 0; background: none; padding: 8px 0; color: var(--muted); font-size: 13px; text-decoration: underline; }
+
+/* видео за споделяне */
+.rec-btn { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.rec-dot { width: 10px; height: 10px; border-radius: 999px; background: #E26D5C; flex: none; }
+.rec-btn.recording { border-color: #E26D5C; color: #F6D6C9; }
+.rec-btn.recording .rec-dot { animation: recblink 1s infinite; }
+@keyframes recblink { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .rec-btn.recording .rec-dot { animation: none; } }
+.clip-sheet { position: absolute; inset: 0; z-index: 20; background: rgba(23,20,28,0.88); display: flex; align-items: flex-end; }
+.clip-card { width: 100%; padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px)); border-radius: 28px 28px 0 0; background: var(--sheet); display: flex; flex-direction: column; gap: 12px; }
+.clip-video { width: 100%; max-height: 58dvh; aspect-ratio: 9 / 16; object-fit: contain; border-radius: 18px; background: #000; }

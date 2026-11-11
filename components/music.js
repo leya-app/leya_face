@@ -3,6 +3,8 @@
 
 let ctx = null;
 let master = null;
+let lpNode = null;
+let recDest = null;
 let timers = [];
 let playing = false;
 let level = 0.14;
@@ -31,6 +33,7 @@ export function unlockAudio() {
       lp.type = 'lowpass';
       lp.frequency.value = 1800;
       master.connect(lp).connect(ctx.destination);
+      lpNode = lp;
     }
     if (ctx.state === 'suspended') ctx.resume();
   } catch {}
@@ -114,3 +117,11 @@ export function chime() {
     o.connect(g).connect(ctx.destination); o.start(at + i * 0.18); o.stop(at + i * 0.18 + 1.7);
   });
 }
+
+// Звук за запис на видео: музиката (и гласът, виж voice.js) отиват и към този поток.
+export function recordingAudio() {
+  if (!ctx) return null;
+  if (!recDest) { recDest = ctx.createMediaStreamDestination(); lpNode && lpNode.connect(recDest); }
+  return recDest;
+}
+export const getRecDest = () => recDest;

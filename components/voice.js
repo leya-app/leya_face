@@ -1,7 +1,7 @@
 // Гласът на треньора: записани фрази (public/voice/NNN.mp3) по номерата в data/voice-lines.json.
 // Липсващ запис → български глас на устройството, ако има такъв; иначе мълчи.
 import LINES from '../data/voice-lines.json';
-import { getCtx, duck } from './music';
+import { getCtx, duck, getRecDest } from './music';
 
 const norm = (t) => String(t).toLowerCase().replace(/[-–]/g, ' ').replace(/[„“"'.!?:,]/g, '').replace(/\s+/g, ' ').trim();
 const BY_TEXT = new Map(LINES.map((l) => [norm(l.text), l.n]));
@@ -59,6 +59,7 @@ async function playOne(text, cancelled) {
         const src = ctx.createBufferSource();
         src.buffer = buf;
         src.connect(ctx.destination);
+        const rd = getRecDest(); if (rd) src.connect(rd);
         src.onended = resolve;
         current = src;
         duck(true);
