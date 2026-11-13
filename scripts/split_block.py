@@ -4,11 +4,19 @@
 групират с динамично програмиране спрямо очакваната дължина на всяка фраза."""
 import json, re, subprocess, sys, math
 
-src, first, count, lines_path, out_dir = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4], sys.argv[5]
+src, first_arg, count, lines_path, out_dir = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+# first: начален номер (напр. 97) или списък от диапазони в реда на блока (напр. 111-123,148-151)
+if '-' in first_arg or ',' in first_arg:
+    order = []
+    for part in first_arg.split(','):
+        a_, _, b_ = part.partition('-'); order += list(range(int(a_), int(b_ or a_) + 1))
+else:
+    order = list(range(int(first_arg), int(first_arg) + count))
 # по избор: ръчно разпределение – колко парчета реч има всяка фраза, напр. 1,2,1,...
 manual = [int(x) for x in sys.argv[6].split(',')] if len(sys.argv) > 6 else None
 lines = json.load(open(lines_path))
-phr = [l for l in lines if first <= int(l['n']) < first + count]
+by_n = {int(l['n']): l for l in lines}
+phr = [by_n[n] for n in order if n in by_n][:count]
 V = set('аеиоуъюяАЕИОУЪЮЯ')
 syl = [max(1, sum(ch in V for ch in p['text'])) for p in phr]
 # очаквани паузи вътре във фразата: запетаи, точки, кавички
