@@ -4,8 +4,11 @@ import LINES from '../data/voice-lines.json';
 import { getCtx, duck, getRecDest } from './music';
 
 const norm = (t) => String(t).toLowerCase().replace(/[-–]/g, ' ').replace(/[„“"'.!?:,]/g, '').replace(/\s+/g, ' ').trim();
-const BY_TEXT = new Map(LINES.map((l) => [norm(l.text), l.n]));
-export const TOTAL_LINES = LINES.filter((l) => !l.unused).length;
+const BY_TEXT = new Map(LINES.filter((l) => !l.voice).map((l) => [norm(l.text), l.n]));
+// втори глас (Коста – масажите): първо търсим неговия запис, после общия
+const BY_VOICE = new Map(LINES.filter((l) => l.voice).map((l) => [`${l.voice}|${norm(l.text)}`, l.n]));
+const lookup = (t, voice) => (voice && BY_VOICE.get(`${voice}|${norm(t)}`)) || BY_TEXT.get(norm(t)) || BY_VOICE.get(`kosta|${norm(t)}`);
+export const TOTAL_LINES = LINES.filter((l) => !l.unused && !l.voice).length;
 
 let have = new Set();
 let ready = null;
@@ -27,10 +30,10 @@ async function buffer(n) {
   return cache.get(n);
 }
 
-export function preload(texts) {
+export function preload(texts, voice) {
   if (!getCtx()) return;
   loadVoiceIndex().then(() => {
-    for (const t of texts) { const n = BY_TEXT.get(norm(t)); if (n && have.has(n)) buffer(n).catch(() => {}); }
+    for (const t of texts) { const n = lookup(t, voice); if (n && have.has(n)) buffer(n).catch(() => {}); }
   });
 }
 
@@ -48,8 +51,8 @@ function stopCurrent() {
   duck(false);
 }
 
-async function playOne(text, cancelled) {
-  const n = BY_TEXT.get(norm(text));
+async function playOne(text, cancelled, voice) {
+  const n = lookup(text, voice);
   const ctx = getCtx();
   if (n && have.has(n) && ctx) {
     try {
@@ -83,14 +86,15 @@ async function playOne(text, cancelled) {
 }
 
 // pieces: една или няколко фрази, казват се една след друга.
-export async function say(pieces, on) {
+// voice: 'kosta' за масажите; без него – Весела.
+export async function say(pieces, on, voice) {
   const my = ++token;
   stopCurrent();
   if (!on) return;
   await loadVoiceIndex();
   for (const t of [].concat(pieces)) {
     if (my !== token) return;
-    await playOne(t, () => my !== token);
+    await playOne(t, () => my !== token, voice);
   }
 }
 

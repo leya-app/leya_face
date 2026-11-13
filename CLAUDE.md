@@ -19,7 +19,9 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   `public/mediapipe`, the model from Google's storage. Metrics: brows, eyesOpen, eyesClose, smile, mouthO,
   jawOpen, chinUp, tilt, calm (forehead stays still), fish, tuck (chin tuck, face shrinks in frame), cheekLift — progress is relative to a 1.5 s calibration of the relaxed face (all metrics calibrated at once). An exercise may have `seq` (e.g. vowels А-Е-И-О-У): each rep has its own metric and cue.
 - Without a camera (or "Без камера") the session runs in demo mode with an animated illustrated face.
-- Voice coach (components/voice.js): recorded ElevenLabs clips public/voice/NNN.mp3 (voice "Vesela", same as Лея), numbered by
+- Voice coach (components/voice.js): two ElevenLabs voices — "Vesela" (same as Лея) for exercises, "Kosta" for massages
+  (lines with "voice": "kosta" in voice-lines.json; say(pieces, on, 'kosta') prefers his clip, then the shared one).
+  Clips public/voice/NNN.mp3, numbered by
   data/voice-lines.json, listed in public/voice/index.json; played through the Web Audio context; phrases are matched by
   normalized text. Missing clip → device bg speechSynthesis if available, else silent (never a foreign voice).
   Mariya generates blocks of ~19 phrases (blok-NN.mp3); `python3 scripts/split_block.py <blok.mp3> <first_n> <count>

@@ -490,137 +490,164 @@
  {
   "id": "m-slow",
   "text": "По-бавно.",
-  "n": "097"
+  "n": "097",
+  "voice": "kosta"
  },
  {
   "id": "m-nohands",
   "text": "Не виждам пръстите.",
-  "n": "098"
+  "n": "098",
+  "voice": "kosta"
  },
  {
   "id": "m-neck-title",
   "text": "Шия – лимфен дренаж.",
-  "n": "099"
+  "n": "099",
+  "voice": "kosta"
  },
  {
   "id": "m-neck-start",
   "text": "Пръстите под ушите.",
-  "n": "100"
+  "n": "100",
+  "voice": "kosta"
  },
  {
   "id": "m-neck-move",
   "text": "Плъзгай бавно надолу към ключиците.",
-  "n": "101"
+  "n": "101",
+  "voice": "kosta"
  },
  {
   "id": "m-neck-done",
   "text": "Добре, отпусни ръцете.",
-  "n": "102"
+  "n": "102",
+  "voice": "kosta"
  },
  {
   "id": "m-jaw-title",
   "text": "Челюст.",
-  "n": "103"
+  "n": "103",
+  "voice": "kosta"
  },
  {
   "id": "m-jaw-start",
   "text": "Пръстите пред ушите, над ъгъла на челюстта.",
-  "n": "104"
+  "n": "104",
+  "voice": "kosta"
  },
  {
   "id": "m-jaw-move",
   "text": "Бавни, малки кръгове.",
-  "n": "105"
+  "n": "105",
+  "voice": "kosta"
  },
  {
   "id": "m-jaw-done",
   "text": "Добре, отпусни челюстта.",
-  "n": "106"
+  "n": "106",
+  "voice": "kosta"
  },
  {
   "id": "m-oval-title",
   "text": "Овал на лицето.",
-  "n": "107"
+  "n": "107",
+  "voice": "kosta"
  },
  {
   "id": "m-oval-start",
   "text": "Пръстите в средата на брадичката.",
-  "n": "108"
+  "n": "108",
+  "voice": "kosta"
  },
  {
   "id": "m-oval-move",
   "text": "Плъзни по челюстта към ушите.",
-  "n": "109"
+  "n": "109",
+  "voice": "kosta"
  },
  {
   "id": "m-cheeks-title",
   "text": "Бузи.",
-  "n": "110"
+  "n": "110",
+  "voice": "kosta"
  },
  {
   "id": "m-cheeks-start",
   "text": "Пръстите до носа.",
-  "n": "111"
+  "n": "111",
+  "voice": "kosta"
  },
  {
   "id": "m-cheeks-move",
   "text": "Плъзгай навън към ушите.",
-  "n": "112"
+  "n": "112",
+  "voice": "kosta"
  },
  {
   "id": "m-underEyes-title",
   "text": "Под очите.",
-  "n": "113"
+  "n": "113",
+  "voice": "kosta"
  },
  {
   "id": "m-underEyes-start",
   "text": "Безименните пръсти до вътрешния ъгъл на очите.",
-  "n": "114"
+  "n": "114",
+  "voice": "kosta"
  },
  {
   "id": "m-underEyes-move",
   "text": "Плъзни леко навън под окото.",
-  "n": "115"
+  "n": "115",
+  "voice": "kosta"
  },
  {
   "id": "m-brows-title",
   "text": "Между веждите.",
-  "n": "116"
+  "n": "116",
+  "voice": "kosta"
  },
  {
   "id": "m-brows-start",
   "text": "Пръстите между веждите.",
-  "n": "117"
+  "n": "117",
+  "voice": "kosta"
  },
  {
   "id": "m-brows-move",
   "text": "Плъзни по веждите навън.",
-  "n": "118"
+  "n": "118",
+  "voice": "kosta"
  },
  {
   "id": "m-forehead-title",
   "text": "Чело.",
-  "n": "119"
+  "n": "119",
+  "voice": "kosta"
  },
  {
   "id": "m-forehead-move",
   "text": "Нагоре и навън към слепоочията.",
-  "n": "120"
+  "n": "120",
+  "voice": "kosta"
  },
  {
   "id": "m-temples-title",
   "text": "Слепоочия.",
-  "n": "121"
+  "n": "121",
+  "voice": "kosta"
  },
  {
   "id": "m-temples-start",
   "text": "Пръстите на слепоочията.",
-  "n": "122"
+  "n": "122",
+  "voice": "kosta"
  },
  {
   "id": "m-temples-move",
   "text": "Много бавни кръгове.",
-  "n": "123"
+  "n": "123",
+  "voice": "kosta"
  },
  {
   "id": "warmup-title",
@@ -741,5 +768,29 @@
   "id": "cornersBack-hold",
   "text": "Задръж.",
   "n": "147"
+ },
+ {
+  "id": "k-start",
+  "text": "Започваме.",
+  "n": "148",
+  "voice": "kosta"
+ },
+ {
+  "id": "k-next",
+  "text": "Следва:",
+  "n": "149",
+  "voice": "kosta"
+ },
+ {
+  "id": "k-done",
+  "text": "Готово! Браво.",
+  "n": "150",
+  "voice": "kosta"
+ },
+ {
+  "id": "k-good",
+  "text": "Добре.",
+  "n": "151",
+  "voice": "kosta"
  }
 ]

@@ -207,10 +207,10 @@ export function MassageSession({ keys, wantCamera, sound, onSound, music, onMusi
   useEffect(() => {
     let lock;
     navigator.wakeLock?.request('screen').then((l) => { lock = l; }).catch(() => {});
-    const t = ['Следва:', 'Готово! Браво.', 'По-бавно.', 'Не виждам пръстите.'];
+    const t = ['Започваме.', 'Следва:', 'Готово! Браво.', 'Добре.', 'По-бавно.', 'Не виждам пръстите.'];
     for (const k of keys) { const m = MASSAGES[k]; t.push(m.title, ...Object.values(m.cues)); }
-    preload(t);
-    say(['Започваме.', MASSAGES[keys[0]].title], soundRef.current);
+    preload(t, 'kosta');
+    say(['Започваме.', MASSAGES[keys[0]].title], soundRef.current, 'kosta');
     return () => { lock?.release?.().catch(() => {}); stopMusic(); silence(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -237,7 +237,7 @@ export function MassageSession({ keys, wantCamera, sound, onSound, music, onMusi
   function setPhase(phase, cue, voice) {
     const s = S.current;
     s.phase = phase; s.t = 0;
-    if (cue != null) { s.cue = cue; if (voice) say(voice, soundRef.current); }
+    if (cue != null) { s.cue = cue; if (voice) say(voice, soundRef.current, 'kosta'); }
   }
 
   function resetSides() {
@@ -250,7 +250,7 @@ export function MassageSession({ keys, wantCamera, sound, onSound, music, onMusi
     s.lastCount = now; s.count += 1; s.dirOk = true;
     if (dur != null) {
       s.pace = dur;
-      if (dur < m.tempo * 0.45 && now - s.lastSlow > 6) { s.lastSlow = now; s.cue = 'По-бавно'; say(['По-бавно.'], soundRef.current); }
+      if (dur < m.tempo * 0.45 && now - s.lastSlow > 6) { s.lastSlow = now; s.cue = 'По-бавно'; say(['По-бавно.'], soundRef.current, 'kosta'); }
       else if (s.cue === 'По-бавно') s.cue = m.cues.move;
     }
   }
@@ -259,7 +259,7 @@ export function MassageSession({ keys, wantCamera, sound, onSound, music, onMusi
     const s = S.current;
     s.done += 1;
     if (s.idx + 1 >= keys.length) {
-      say(['Готово! Браво.'], soundRef.current);
+      say(['Готово! Браво.'], soundRef.current, 'kosta');
       onDone({ exercises: s.done, minutes: Math.max(1, Math.round((Date.now() - s.started) / 60000)), title: keys.length > 1 ? 'Масаж на цялото лице' : MASSAGES[keys[0]].title, kind: 'massage' });
       return;
     }
@@ -289,7 +289,7 @@ export function MassageSession({ keys, wantCamera, sound, onSound, music, onMusi
       if (!tips.length) {
         s.noHands += dt;
         if (s.noHands > 2) s.cue = 'Сложи пръстите в кадъра';
-        if (s.noHands > 9) { s.guided = true; s.cue = 'Не виждам пръстите – броя по темпото'; say(['Не виждам пръстите.'], soundRef.current); s.guidedFrom = s.t - s.count * m.tempo; }
+        if (s.noHands > 9) { s.guided = true; s.cue = 'Не виждам пръстите – броя по темпото'; say(['Не виждам пръстите.'], soundRef.current, 'kosta'); s.guidedFrom = s.t - s.count * m.tempo; }
       } else {
         if (s.noHands > 2 && s.cue === 'Сложи пръстите в кадъра') s.cue = m.cues.move;
         s.noHands = 0;
