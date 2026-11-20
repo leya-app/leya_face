@@ -33,7 +33,10 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
 - Тихо огледало (components/QuietMirror.jsx): desk mode. Calibrates the relaxed face 3 s, then watches frown
   (max of: inner-brow gap ↓, inner brows lowered toward eye corners, model blendshape browDown ↑ — the blendshape
   works with a high camera), raised brows (geometry or browInnerUp), leaning to the screen (face width ↑); each signal
-  is a level where 1 = threshold, shown live as bars; sustained 1.5/2/5 s → soft chime
+  is a level where 1 = threshold, shown live as bars. "Нагласи по мен" (default on): after the relaxed 3 s the user frowns
+  lightly for 2.5 s and the frown thresholds become half of that movement (floors against noise); "Нагласи отново"
+  repeats it. Sensitivity ниска/средна/висока/макс. (k 1.4/1/0.7/0.5). Hint when the face is small in frame (width < 0.2).
+  Sustained 1.2/2/5 s → soft chime
   (or voice), on-screen hint, Notification when the tab is hidden; 60 s cooldown per signal; baseline drifts slowly.
   tracker.js switches to a 500 ms timer when the tab is hidden. Picture-in-picture button. Log in localStorage fy-mirror-log.
 - Твоята седмица (components/progress.js + Progress.jsx): camera sessions record per exercise: amp (peak relative change),

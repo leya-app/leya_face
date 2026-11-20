@@ -236,7 +236,8 @@ button:focus-visible { outline: 2px solid var(--peach); outline-offset: 3px; }
 .mirror-options { display: flex; flex-direction: column; gap: 8px; }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--surface); }
 .toggle-row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--sage); flex: none; }
-.small-seg { flex: none; grid-template-columns: repeat(3, auto); }
+.small-seg { flex: none; grid-template-columns: repeat(4, auto); }
+.toggle-row:has(.small-seg) { flex-wrap: wrap; }
 .small-seg button { height: 34px; padding: 0 10px; font-size: 13px; }
 .mirror-run { gap: 16px; }
 .mirror-status { position: relative; height: 300px; border-radius: 28px; overflow: hidden; background: var(--surface); box-shadow: 0 0 0 3px var(--surface-2); transition: box-shadow 0.4s; }

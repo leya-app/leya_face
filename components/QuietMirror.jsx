@@ -30,12 +30,13 @@ const SIGNALS = {
     label: 'Мръщене',
     hint: 'Отпусни веждите',
     voice: 'Отпусни веждите.',
-    level: (f, b, k) => Math.max(
-      (1 - f.gap / b.gap) / (0.04 * k),
-      (1 - f.low / b.low) / (0.08 * k),
-      f.down != null && b.down != null ? (f.down - b.down) / (0.18 * k) : 0,
+    // sc = лични прагове от „Нагласи по мен“ (иначе стойностите по подразбиране)
+    level: (f, b, k, sc) => Math.max(
+      (1 - f.gap / b.gap) / (sc.gap * k),
+      (1 - f.low / b.low) / (sc.low * k),
+      f.down != null && b.down != null ? (f.down - b.down) / (sc.down * k) : 0,
     ),
-    hold: 1.5,
+    hold: 1.2,
   },
   raise: {
     label: 'Вдигнати вежди',
@@ -56,6 +57,8 @@ const SIGNALS = {
   },
 };
 const FEATS = ['gap', 'low', 'raise', 'faceW', 'down', 'up'];
+const DEFAULT_SCALE = { gap: 0.04, low: 0.08, down: 0.18 };
+const median = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : null; };
 const KEYS = Object.keys(SIGNALS);
 const COOLDOWN = 60;
 
@@ -66,7 +69,7 @@ const store = {
 
 export default function QuietMirror({ onBack }) {
   const [stage, setStage] = useState('setup'); // setup | run | summary
-  const [opts, setOpts] = useState({ frown: true, raise: true, lean: true, voice: false, sens: 1 });
+  const [opts, setOpts] = useState({ frown: true, raise: true, lean: true, voice: false, sens: 1, personal: true });
   const [summary, setSummary] = useState(null);
 
   useEffect(() => { setOpts((o) => ({ ...o, ...store.get('fy-mirror-opts', {}) })); }, []);
@@ -94,13 +97,17 @@ export default function QuietMirror({ onBack }) {
           </label>
         ))}
         <label className="toggle-row">
+          <span className="stack-4"><span className="strong">Нагласи по мен</span><span className="muted small">В началото се смръщи за 2 сек – огледалото научава твоето движение</span></span>
+          <input id="mirror-personal" type="checkbox" checked={opts.personal !== false} onChange={(e) => setOpt('personal', e.target.checked)} />
+        </label>
+        <label className="toggle-row">
           <span className="stack-4"><span className="strong">Подсказка с глас</span><span className="muted small">Иначе само тих звън</span></span>
           <input id="mirror-voice" type="checkbox" checked={opts.voice} onChange={(e) => setOpt('voice', e.target.checked)} />
         </label>
         <div className="toggle-row">
           <span className="strong">Чувствителност</span>
           <div className="seg small-seg" role="radiogroup" aria-label="Чувствителност">
-            {[[1.4, 'ниска'], [1, 'средна'], [0.7, 'висока']].map(([v, l]) => (
+            {[[1.4, 'ниска'], [1, 'средна'], [0.7, 'висока'], [0.5, 'макс.']].map(([v, l]) => (
               <button key={l} role="radio" aria-checked={opts.sens === v} className={opts.sens === v ? 'on' : ''} onClick={() => setOpt('sens', v)}>{l}</button>
             ))}
           </div>
@@ -121,7 +128,7 @@ function MirrorRun({ opts, onStop }) {
   const [paused, setPaused] = useState(false);
   const [toast, setToast] = useState(null);
   const [, force] = useState(0);
-  const S = useRef({ base: null, samples: {}, startedAt: Date.now(), calibT: 0, over: {}, last: {}, counts: { frown: 0, raise: 0, lean: 0 }, levels: { frown: 0, raise: 0, lean: 0 }, events: [], noFace: 0 });
+  const S = useRef({ base: null, samples: {}, startedAt: Date.now(), calibT: 0, cal: 'relaxed', calT: 0, frownSamples: {}, scale: { ...DEFAULT_SCALE }, small: false, over: {}, last: {}, counts: { frown: 0, raise: 0, lean: 0 }, levels: { frown: 0, raise: 0, lean: 0 }, events: [], noFace: 0 });
   const pausedRef = useRef(false); pausedRef.current = paused;
   const optsRef = useRef(opts); optsRef.current = opts;
   const lastT = useRef(performance.now());
@@ -197,17 +204,39 @@ function MirrorRun({ opts, onStop }) {
       for (const k of FEATS) if (f[k] != null) (s.samples[k] ||= []).push(f[k]);
       if (s.calibT > 3 && (s.samples.gap || []).length > 10) {
         s.base = {};
-        for (const k of FEATS) {
-          const a = [...(s.samples[k] || [])].sort((x, y) => x - y);
-          s.base[k] = a.length ? a[Math.floor(a.length / 2)] : null;
-        }
+        for (const k of FEATS) s.base[k] = median(s.samples[k] || []);
+        s.cal = optsRef.current.personal !== false && optsRef.current.frown ? 'frownWait' : 'done';
+        s.calT = 0;
       }
       return;
     }
+    // „Нагласи по мен“: колко се мърдат твоите вежди при леко мръщене, от твоето разстояние
+    if (s.cal !== 'done') {
+      s.calT += dt;
+      if (s.cal === 'frownWait' && s.calT > 1.2) { s.cal = 'frown'; s.calT = 0; s.frownSamples = {}; }
+      else if (s.cal === 'frown') {
+        for (const k of ['gap', 'low', 'down']) if (f[k] != null) (s.frownSamples[k] ||= []).push(f[k]);
+        if (s.calT > 2.5) {
+          const fs = s.frownSamples; const b = s.base; const sc = { ...DEFAULT_SCALE };
+          const dGap = fs.gap ? 1 - median(fs.gap.slice(-20)) / b.gap : 0;
+          const dLow = fs.low ? 1 - median(fs.low.slice(-20)) / b.low : 0;
+          const dDown = fs.down && b.down != null ? median(fs.down.slice(-20)) - b.down : 0;
+          // прагът = половината от лекото ти мръщене, но не по-малко от шума
+          if (dGap > 0.02) sc.gap = Math.max(0.012, dGap * 0.5);
+          if (dLow > 0.03) sc.low = Math.max(0.025, dLow * 0.5);
+          if (dDown > 0.08) sc.down = Math.max(0.05, dDown * 0.5);
+          s.scale = sc;
+          s.personalOk = dGap > 0.02 || dLow > 0.03 || dDown > 0.08;
+          s.cal = 'release'; s.calT = 0;
+        }
+      } else if (s.cal === 'release' && s.calT > 1.5) { s.cal = 'done'; }
+      return;
+    }
+    s.small = f.faceW < 0.2;
     const t = Date.now() / 1000; const k = optsRef.current.sens;
     for (const key of KEYS) {
       const sig = SIGNALS[key];
-      const lvl = sig.level(f, s.base, k);
+      const lvl = sig.level(f, s.base, k, s.scale);
       s.levels[key] = Math.max(0, Math.min(1.5, lvl));
       if (!optsRef.current[key]) continue;
       if (lvl >= 1) {
@@ -225,11 +254,12 @@ function MirrorRun({ opts, onStop }) {
   const minutes = Math.floor((Date.now() - s.startedAt) / 60000);
   const total = s.counts.frown + s.counts.raise + s.counts.lean;
   const recent = toast && Date.now() - toast.at < 6000;
-  const status = cam !== 'on' ? null : !s.base ? 'calib' : s.noFace > 3 ? 'away' : recent ? 'alert' : 'calm';
+  const calText = s.cal === 'frownWait' ? 'Сега се смръщи леко…' : s.cal === 'frown' ? 'Задръж мръщенето' : s.cal === 'release' ? 'Отпусни. Готово!' : null;
+  const status = cam !== 'on' ? null : !s.base ? 'calib' : calText ? 'calib' : s.noFace > 3 ? 'away' : recent ? 'alert' : 'calm';
 
   statusRef.current = {
     color: status === 'alert' ? '#F2B49B' : status === 'calm' ? '#9CC5A1' : '#BDB2BA',
-    text: paused ? 'На пауза' : status === 'calib' ? 'Гледай спокойно…' : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : 'Спокойно',
+    text: paused ? 'На пауза' : status === 'calib' ? (calText || 'Гледай спокойно…') : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : 'Спокойно',
   };
 
   const pip = async () => {
@@ -247,6 +277,10 @@ function MirrorRun({ opts, onStop }) {
     try { await videoRef.current.requestPictureInPicture(); } catch {}
   };
 
+  const recalibrate = () => {
+    const st = S.current;
+    Object.assign(st, { base: null, samples: {}, calibT: 0, cal: 'relaxed', calT: 0, frownSamples: {}, scale: { ...DEFAULT_SCALE }, personalOk: undefined, over: {} });
+  };
   const stop = () => onStop({ minutes: Math.max(1, Math.round((Date.now() - s.startedAt) / 60000)), counts: { ...s.counts }, events: s.events, startedAt: s.startedAt });
 
   return (
@@ -264,7 +298,7 @@ function MirrorRun({ opts, onStop }) {
         <canvas ref={pipCanvas} width="480" height="360" className="pip-source" aria-hidden="true" />
         <video ref={pipVideo} className="pip-source" playsInline muted aria-hidden="true" />
         <div className="mirror-badge">
-          {paused ? 'На пауза' : status === 'calib' ? 'Гледай екрана спокойно…' : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : cam === 'failed' ? 'Камерата не е достъпна' : cam === 'starting' ? 'Пускам камерата…' : 'Спокойно'}
+          {paused ? 'На пауза' : status === 'calib' ? (calText || 'Гледай екрана спокойно…') : status === 'away' ? 'Не те виждам' : status === 'alert' ? SIGNALS[toast.k].hint : cam === 'failed' ? 'Камерата не е достъпна' : cam === 'starting' ? 'Пускам камерата…' : 'Спокойно'}
         </div>
       </div>
 
@@ -278,9 +312,12 @@ function MirrorRun({ opts, onStop }) {
         ))}
       </div>
 
+      {s.small && status !== 'calib' && <div className="warn">{Icon.info}<span>Лицето е малко в кадъра. Седни по-близо или приближи камерата – така мръщенето се хваща по-лесно.</span></div>}
+      {s.cal === 'done' && s.personalOk === false && <div className="warn">{Icon.info}<span>Не видях мръщене при нагласянето – ползвам обичайните прагове. Натисни „Нагласи отново“ и се смръщи ясно.</span></div>}
       <p className="fine" style={{ textAlign: 'left' }}>Лентите показват колко близо си до подсказка – смръщи се, за да видиш как реагира. Може да минеш в друг раздел или прозорец – огледалото продължава да следи. С „Малък прозорец“ виждаш себе си в ъгъла на екрана.</p>
 
       <div className="bottom-actions">
+        <button className="btn-ghost" style={{ width: '100%' }} onClick={recalibrate}>Нагласи отново</button>
         <button className="btn-ghost" style={{ width: '100%' }} onClick={pip}>{inPip ? 'Затвори малкия прозорец' : 'Малък прозорец'}</button>
         <button className="cta sage-cta" onClick={stop}>Край и отчет</button>
       </div>
