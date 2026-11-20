@@ -49,12 +49,24 @@ Repo leya-app/leya_face; same GitHub org (leya-app) and Vercel account as Лея
   canvas: mirrored video, landmark dots, wordmark, exercise + program, rep counter, hold ring, coach cue, progress line;
   MediaRecorder (mp4 if supported) with audio from music.js recordingAudio() (music + recorded voice). Afterwards the
   session pauses and a sheet offers Share (Web Share files) / Save / Close.
+- Профил (components/Settings.jsx, from the person icon on Home): voice/music/camera toggles, time-lapse, links to
+  /usloviya and /poveritelnost, contact support.leya@gmail.com (copy), AI-voice + not-medical note, "Изтрий всички данни"
+  (removes localStorage fy-* and IndexedDB frames, in-page confirm), version.
+- Legal pages: content/usloviya.md and content/poveritelnost.md rendered by lib/simple-md.js at /usloviya, /poveritelnost.
+  Contact support.leya@gmail.com. Update both before accounts or payments go live.
+- No third-party requests at runtime: fonts from @fontsource (latin + cyrillic), MediaPipe models downloaded at build
+  (`prebuild` → scripts/fetch-models.mjs → public/models, gitignored; falls back to Google storage if missing).
 - Streak days kept in localStorage only.
 
 ## Conventions
 - Colors: bg #17141C, surfaces #241E2A / #2B2432, peach #F2B49B, sage #9CC5A1, ink #F6F1EE.
 - Fonts: Unbounded (display), Golos Text (body) — both with Cyrillic.
 - No medical claims; label AI content; face data never leaves the device (GDPR).
+
+## Release plan (decided 20.11.2026)
+- Free only during the Google Play closed test (12 testers × 14 days, personal account). After that: simplified accounts
+  like Лея (Google sign-in via Supabase) + Premium. Android app = TWA via PWABuilder like Лея; in-app purchases there must
+  go through Google Play Billing (same open issue as Лея).
 
 ## Next ideas (from Mariya, not decided yet)
 - More workouts (Mariya will send ideas).

@@ -8,6 +8,7 @@ import QuietMirror from './QuietMirror';
 import { saveProgress } from './progress';
 import Progress, { WeekCard } from './Progress';
 import Timelapse from './Timelapse';
+import Settings from './Settings';
 import { captureAligned, saveToday, isOn as timelapseOn } from './timelapse';
 import { recordClip } from './clip';
 import { EXERCISES, PROGRAMS, ZONES, OCCASIONS, programMinutes, countWord } from './data';
@@ -100,9 +101,13 @@ export default function App() {
 
   return (
     <main className="shell">
-      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} days={days} onProgress={() => go('progress')} />}
+      {screen.name === 'home' && <Home streak={streakFrom(days)} onProgram={(k) => go('intro', { program: k, from: 'home' })} onZones={() => go('zones')} onMassages={() => go('massages')} onMirror={() => go('mirror')} days={days} onProgress={() => go('progress')} onProfile={() => go('settings')} />}
+      {screen.name === 'settings' && (
+        <Settings sound={sound} music={music} useCamera={useCamera} onSound={toggleSound} onMusic={toggleMusic} onCamera={toggleCamera}
+          onTimelapse={() => go('timelapse', { from: 'settings' })} onBack={() => go('home')} />
+      )}
       {screen.name === 'progress' && <Progress days={days} onBack={() => go('home')} onTimelapse={() => go('timelapse')} />}
-      {screen.name === 'timelapse' && <Timelapse onBack={() => go('progress')} />}
+      {screen.name === 'timelapse' && <Timelapse onBack={() => go(screen.from || 'progress')} />}
       {screen.name === 'mirror' && <QuietMirror onBack={() => go('home')} />}
       {screen.name === 'massages' && <MassageList onBack={() => go('home')} onPick={(keys) => go('massageIntro', { keys })} />}
       {screen.name === 'massageIntro' && (
@@ -142,7 +147,7 @@ export default function App() {
 
 /* ---------- начало ---------- */
 
-function Home({ streak, onProgram, onZones, onMassages, onMirror, days, onProgress }) {
+function Home({ streak, onProgram, onZones, onMassages, onMirror, days, onProgress, onProfile }) {
   const [now, setNow] = useState(null);
   useEffect(() => setNow(new Date()), []);
   const h = now ? now.getHours() : 9;
@@ -159,7 +164,7 @@ function Home({ streak, onProgram, onZones, onMassages, onMirror, days, onProgre
           <div className="muted cap">{date}</div>
           <h1 className="display-28">{hello}</h1>
         </div>
-        <button className="icon-btn" aria-label="Профил">{Icon.user}</button>
+        <button className="icon-btn" aria-label="Профил" onClick={onProfile}>{Icon.user}</button>
       </header>
 
       {streak > 0 && <div className="streak">{daysWord(streak)} поред</div>}
