@@ -1,5 +1,6 @@
 // Камера + MediaPipe Face Landmarker. Всичко се обработва в браузъра.
 
+const LOCAL_FACE = '/models/face_landmarker.task';
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 
@@ -85,12 +86,14 @@ async function getLandmarker() {
     landmarkerPromise = (async () => {
       const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
       const fileset = await FilesetResolver.forVisionTasks('/mediapipe');
-      return FaceLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      const make = (path) => FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: path, delegate: 'GPU' },
         runningMode: 'VIDEO',
         numFaces: 1,
         outputFaceBlendshapes: true,
       });
+      // първо моделът от нашия сървър, при проблем – от Google
+      return make(LOCAL_FACE).catch(() => make(MODEL_URL));
     })().catch((e) => {
       landmarkerPromise = null;
       throw e;
@@ -99,6 +102,7 @@ async function getLandmarker() {
   return landmarkerPromise;
 }
 
+const LOCAL_HAND = '/models/hand_landmarker.task';
 const HAND_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 let handPromise = null;
@@ -107,11 +111,12 @@ async function getHandLandmarker() {
     handPromise = (async () => {
       const { HandLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
       const fileset = await FilesetResolver.forVisionTasks('/mediapipe');
-      return HandLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: HAND_URL, delegate: 'GPU' },
+      const make = (path) => HandLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: path, delegate: 'GPU' },
         runningMode: 'VIDEO',
         numHands: 2,
       });
+      return make(LOCAL_HAND).catch(() => make(HAND_URL));
     })().catch((e) => {
       handPromise = null;
       throw e;

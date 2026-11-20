@@ -1,3 +1,16 @@
+// Шрифтовете са на нашия сървър (без заявки към Google): само латиница + кирилица.
+import '@fontsource/golos-text/latin-400.css';
+import '@fontsource/golos-text/latin-500.css';
+import '@fontsource/golos-text/latin-600.css';
+import '@fontsource/golos-text/latin-700.css';
+import '@fontsource/golos-text/cyrillic-400.css';
+import '@fontsource/golos-text/cyrillic-500.css';
+import '@fontsource/golos-text/cyrillic-600.css';
+import '@fontsource/golos-text/cyrillic-700.css';
+import '@fontsource/unbounded/latin-500.css';
+import '@fontsource/unbounded/latin-600.css';
+import '@fontsource/unbounded/cyrillic-500.css';
+import '@fontsource/unbounded/cyrillic-600.css';
 import './globals.css';
 
 export const metadata = {
@@ -17,14 +30,6 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="bg">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap"
-        />
-      </head>
       <body>{children}</body>
     </html>
   );
